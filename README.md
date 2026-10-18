@@ -814,11 +814,12 @@ API underneath doesn't change.
 
 ## Version history
 
-Docker Hub (`michaelk98/homereel`) is the source of truth for both the
-current build and every past one — every real change gets its own pushed tag,
-`latest` always points at the newest, and the live stack pulls from
-Hub rather than a local build. Only recent versions are listed here; older
-ones are still on Hub as their own tags even without a note below.
+The source lives on GitHub (`MichaelK981/Homereel`): every release is a
+commit on `main` tagged `vX.YY`. Built images are published to Docker Hub
+(`michaelk98/homereel`) under the same version, with `latest` pointing at
+the newest, and the live stack pulls from there rather than a local build.
+Versions before 1.90 predate the repository and exist only as Docker Hub
+tags; the ones listed below are summarised here.
 
 - **1.77 (2026-08-28)** — Fixed a deploy regression: the previous build had
   been made from a stray, stale copy of the source tree and silently reverted
