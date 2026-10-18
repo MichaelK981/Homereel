@@ -1,0 +1,87 @@
+# HomeReel — published compose. Mirrors the live stack, with every
+# secret replaced by a placeholder: this file ships inside the public image, so
+# nothing real can live here. The *arr keys are optional; without them the app
+# runs fine and simply has no poster artwork, ratings or collections.
+services:
+  homereel:
+    image: michaelk98/homereel:latest
+    container_name: homereel
+    ports:
+      # 8000 is the container port; publish anywhere free on the host.
+      - "8200:8000"
+    volumes:
+      - /path/to/Movies:/movies
+      - /path/to/Series:/series
+      - /path/to/Anime:/anime
+      # Index, sessions, cached posters and transcode segments all live here.
+      - /path/to/Cache:/cache
+      # Extra libraries are mapped in Settings > Libraries, but HomeReel can only
+      # see what is mounted here — add the volume first, restart, then map the
+      # container-side path (e.g. /documentaries) in the UI.
+      # - /path/to/Documentaries:/documentaries
+    environment:
+      - MOVIES_PATH=/movies
+      - SERIES_PATH=/series
+      - ANIME_PATH=/anime
+      - TRANSCODE_DIR=/cache/transcode
+      - POSTER_DIR=/cache/posters
+      - DB_PATH=/cache/library.db
+      - TZ=Etc/UTC
+      # Set only if a reverse proxy in front sets X-Forwarded-For. Without it
+      # that header is ignored — otherwise any client can choose the address
+      # the admin Live view shows for it.
+      # - TRUST_PROXY=true
+      - ENCODER=nvenc            # "cpu" falls back to libx264 with no GPU
+      # Seconds between background checks for added/removed media; 0 disables
+      # the watcher and leaves scanning to the buttons in the header.
+      - SCAN_INTERVAL=300
+      # Seconds of silence before the admin Live view forgets a viewing. It has
+      # to clear the gap a paused player leaves, or pausing looks like leaving.
+      # - WATCHING_TIMEOUT=90
+      # How far into a title playback must get before the position is kept, and
+      # how much of it counts as finished (after which it starts over).
+      # - RESUME_MIN_SECONDS=30
+      # - RESUME_FINISHED_PERCENT=95
+      # How much of a title earns it a check mark, and takes it off the
+      # Continue Watching shelf. Lower than RESUME_FINISHED_PERCENT on purpose.
+      # - WATCHED_PERCENT=85
+      # Where the "Skip Intro" button jumps to on a Series/Anime episode. No
+      # per-title intro detection — one fixed offset for every episode.
+      # - SKIP_INTRO_SECONDS=85
+      # Every account signs in with a password and a 6-digit code from an
+      # authenticator app; this is how long a sign-in may sit between the two
+      # before it has to start over. There is no setting to turn 2FA off.
+      # - PENDING_LOGIN_MINUTES=10
+      # Artwork, ratings and collections are joined from Radarr/Sonarr by path,
+      # so those services must mount the libraries at these same mount points.
+      - RADARR_URL=http://radarr:7878
+      - RADARR_API_KEY=your_radarr_api_key
+      - SONARR_URL=http://sonarr:8989
+      - SONARR_API_KEY=your_sonarr_api_key
+      - SONARR_ANIME_URL=http://sonarr-anime:8989
+      - SONARR_ANIME_API_KEY=your_sonarr_anime_api_key
+      # Optional second Radarr (e.g. anime films in their own library). If it
+      # mounts the folder at a different path than this container does, map
+      # its prefix onto ours so the path join still lines up.
+      # - RADARR_ANIME_URL=http://radarr-anime:7878
+      # - RADARR_ANIME_API_KEY=your_radarr_anime_api_key
+      # - RADARR_ANIME_PATH_MAP=/movies:/animemovies
+      # Free key from themoviedb.org. Sonarr has no cast data of its own, so
+      # without this Series/Anime still get a description in the detail popup,
+      # just no cast row. Movies get cast from Radarr regardless.
+      # - TMDB_API_KEY=your_tmdb_api_key
+      # A page hosting the Android/TV app builds. When set, Settings and the
+      # sign-in card link to it; leave it out and no link is shown.
+      # - DOWNLOADS_URL=https://downloads.example.com
+      - NVIDIA_VISIBLE_DEVICES=all
+      # "all" pulls in graphics/display caps and needs /dev/nvidia-modeset,
+      # which an LXC typically does not pass through.
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped

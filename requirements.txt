@@ -1,0 +1,5 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+# Only to draw the two-factor enrolment QR. Pure Python, no dependencies of
+# its own — everything else in app/totp.py is stdlib hmac and base64.
+segno==1.6.6

@@ -1,0 +1,2541 @@
+/* HomeReel themes (1.89).
+ *
+ * The registry is static/themes.js; this file draws each entry. Loaded after
+ * style.css, so every rule here wins ties against the house style.
+ *
+ * How a theme is built, in three layers:
+ *
+ *  1. Tokens on [data-theme="<id>"] — the same custom properties style.css
+ *     already runs on (--bg, --surface, --accent, --font-display, ...) plus
+ *     the extra "treatment" tokens declared in the base block below
+ *     (--card-shadow, --btn-radius, --panel-bg, ...). Written without the
+ *     html prefix on purpose: the Settings gallery sets data-theme on each
+ *     preview tile, so a tile picks up its own theme's tokens in isolation.
+ *
+ *  2. The base layer (html:where(...)) — re-expresses the house style's
+ *     hard-wired pieces (the teal glows, the glass rules from 1.87, the
+ *     Barlow body font) in terms of those tokens, for every theme except
+ *     "default". :where() keeps it at zero extra specificity, so a theme's
+ *     own rules always beat it.
+ *
+ *  3. Per-theme component rules (html[data-theme="<id>"] ...) — the things
+ *     a token can't express: halftone, box-drawing borders, flap tiles, foil.
+ *
+ * "default" is the 1.88 look exactly: with data-theme="default" none of the
+ * base layer applies and style.css renders untouched.
+ *
+ * Decorative motion lives in .theme-fx layers mounted by themes.js and in
+ * animations gated on html[data-fx="on"] — themes.js only sets that when
+ * prefers-reduced-motion is off and effects aren't switched off in Settings.
+ */
+
+/* ---------- Fonts ----------
+   Self-hosted like the house fonts (no CDN — see the note in style.css).
+   A browser only downloads a face once a rule on the page actually uses it,
+   so 20 themes' worth of @font-face costs nothing until you pick one. */
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fonts/themes/Outfit-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Sora'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fonts/themes/Sora-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Orbitron'; font-style: normal; font-weight: 500 800; font-display: swap; src: url('/fonts/themes/Orbitron-500-800.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/themes/Rajdhani-500.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/themes/Rajdhani-600.woff2') format('woff2'); }
+@font-face { font-family: 'Rajdhani'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/themes/Rajdhani-700.woff2') format('woff2'); }
+@font-face { font-family: 'Michroma'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/Michroma-400.woff2') format('woff2'); }
+@font-face { font-family: 'Exo 2'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fonts/themes/Exo2-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Archivo Black'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/ArchivoBlack-400.woff2') format('woff2'); }
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fonts/themes/Fredoka-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 400 800; font-display: swap; src: url('/fonts/themes/Nunito-400-800.woff2') format('woff2'); }
+@font-face { font-family: 'Syne'; font-style: normal; font-weight: 500 800; font-display: swap; src: url('/fonts/themes/Syne-500-800.woff2') format('woff2'); }
+@font-face { font-family: 'Space Grotesk'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fonts/themes/SpaceGrotesk-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'VT323'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/VT323-400.woff2') format('woff2'); }
+@font-face { font-family: 'Share Tech Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/ShareTechMono-400.woff2') format('woff2'); }
+@font-face { font-family: 'Bangers'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/Bangers-400.woff2') format('woff2'); }
+@font-face { font-family: 'Comic Neue'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/ComicNeue-400.woff2') format('woff2'); }
+@font-face { font-family: 'Comic Neue'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/themes/ComicNeue-700.woff2') format('woff2'); }
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 500 700; font-display: swap; src: url('/fonts/themes/Caveat-500-700.woff2') format('woff2'); }
+@font-face { font-family: 'Patrick Hand'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/PatrickHand-400.woff2') format('woff2'); }
+@font-face { font-family: 'Press Start 2P'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/PressStart2P-400.woff2') format('woff2'); }
+@font-face { font-family: 'Jost'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/fonts/themes/Jost-400-700.woff2') format('woff2'); }
+@font-face { font-family: 'Poiret One'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/themes/PoiretOne-400.woff2') format('woff2'); }
+
+
+/* ---------- "default" as tokens ----------
+   :root already holds these, but a gallery tile for the house style can sit
+   inside a page running another theme and would inherit that one's tokens.
+   Only what a preview tile reads is repeated here. */
+[data-theme="default"] {
+  --bg: #06090c;
+  --backdrop:
+    radial-gradient(1200px 800px at 10% -10%, rgba(0, 194, 168, 0.30), transparent 60%),
+    radial-gradient(1000px 720px at 100% 0%, rgba(56, 120, 255, 0.20), transparent 60%),
+    linear-gradient(160deg, #081116, #06090c 55%, #080c14);
+  --surface: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.14);
+  --text: #f2f4f5;
+  --muted: #9aa2a9;
+  --accent: #00c2a8;
+  --on-accent: #04231f;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --font-display: 'Anton', Impact, sans-serif;
+  --font-ui: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --card-radius: 12px;
+  --card-border: 1px solid rgba(255, 255, 255, 0.11);
+  --card-shadow: 0 8px 22px rgba(2, 6, 9, 0.38);
+  --btn-bg: #00c2a8;
+  --btn-text: #04231f;
+  --btn-radius: 12px;
+  --btn-border: 0 solid transparent;
+  --btn-shadow: 0 6px 22px rgba(0, 194, 168, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --panel-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035));
+  --panel-border: 1px solid rgba(255, 255, 255, 0.14);
+  --display-case: uppercase;
+  --display-weight: 400;
+}
+
+
+/* ---------- Base layer: treatment tokens + their defaults ---------- */
+
+:where([data-theme]:not([data-theme="default"])) {
+  --font-body: 'Barlow', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-card: var(--font-display);
+  --font-heading: var(--font-ui);
+  --display-case: uppercase;
+  --display-tracking: 0.01em;
+  --display-weight: 400;
+  --heading-case: uppercase;
+  --title-shadow: none;
+
+  --chrome-bg: var(--glass);
+  --chrome-blur: var(--glass-blur);
+  --chrome-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
+  --header-bg: var(--glass-strong);
+  --nav-radius: 10px;
+  --nav-active-bg: var(--accent-tint);
+  --nav-active-text: var(--text);
+  --nav-active-shadow: none;
+
+  --panel-bg: var(--glass);
+  --panel-blur: var(--glass-blur);
+  --panel-border: 1px solid var(--border);
+  --panel-radius: var(--radius);
+  --panel-shadow: var(--glass-shadow);
+
+  --card-radius: var(--radius-sm);
+  --card-border: 1px solid var(--border);
+  --card-shadow: 0 8px 22px rgba(0, 0, 0, 0.38);
+  --card-hover-border: var(--accent);
+  --card-hover-shadow: var(--card-shadow);
+  --card-hover-transform: translateY(-4px);
+
+  --btn-bg: var(--accent);
+  --btn-bg-hover: var(--accent-hover);
+  --btn-text: var(--on-accent);
+  --btn-radius: var(--radius-sm);
+  --btn-border: 0 solid transparent;
+  --btn-shadow: none;
+  --btn-hover-shadow: var(--btn-shadow);
+  --btn-hover-transform: none;
+  --btn-press-transform: translateY(1px);
+  --btn-font: var(--font-ui);
+  --btn2-bg: var(--surface);
+  --btn2-text: var(--text);
+  --btn2-border: 1px solid var(--border);
+  --btn2-shadow: none;
+
+  --hero-radius: var(--radius);
+  --hero-border: 1px solid var(--border);
+  --hero-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --scrim: 8, 9, 11;                  /* rgb triplet the hero/detail scrims are mixed from */
+  --on-art: #f6f6f6;                  /* text over posters, the hero and the player */
+  --on-art-2: rgba(246, 246, 246, 0.82);
+
+  --input-bg: var(--bg-2);
+  --input-border: 1px solid var(--border);
+  --focus-ring: 0 0 0 3px var(--accent-tint);
+
+  --ease: ease;
+  --dur: 0.18s;
+}
+
+
+/* ---------- Base layer: rules ---------- */
+
+html:where([data-theme]:not([data-theme="default"])) body {
+  font-family: var(--font-body);
+}
+
+/* Anything drawn over artwork keeps light text whatever the page scheme —
+   a light theme's dark --text would vanish into a darkened poster. */
+html:where([data-theme]:not([data-theme="default"])) :is(.tab-hero, .detail-backdrop, .player, .card-box, .live-poster) {
+  --text: var(--on-art);
+  --text-secondary: var(--on-art-2);
+  color: var(--on-art);
+}
+
+/* Chrome */
+html:where([data-theme]:not([data-theme="default"])) .sidebar {
+  background: var(--chrome-bg);
+  -webkit-backdrop-filter: var(--chrome-blur);
+  backdrop-filter: var(--chrome-blur);
+  box-shadow: var(--chrome-shadow);
+  border-color: var(--border);
+}
+html:where([data-theme]:not([data-theme="default"])) body.app[data-nav-mode="top"] .sidebar {
+  box-shadow: var(--chrome-shadow);
+}
+html:where([data-theme]:not([data-theme="default"])) header {
+  background: var(--header-bg);
+  border-bottom-color: var(--border);
+}
+html:where([data-theme]:not([data-theme="default"])) .tab-btn {
+  border-radius: var(--nav-radius);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+html:where([data-theme]:not([data-theme="default"])) .tab-btn.active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  box-shadow: var(--nav-active-shadow);
+  border-left-color: var(--accent);
+}
+html:where([data-theme]:not([data-theme="default"])) .nav-profile-initial {
+  border-color: var(--accent);
+}
+
+/* Panes */
+html:where([data-theme]:not([data-theme="default"])) :is(.panel, .detail-fact-panel, .live-row, .login-card) {
+  background: var(--panel-bg);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
+  border: var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--panel-shadow);
+}
+html:where([data-theme]:not([data-theme="default"])) .search-input {
+  background: var(--input-bg);
+  border: var(--input-border);
+  border-radius: var(--btn-radius);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+html:where([data-theme]:not([data-theme="default"])) :is(.login-card input:not([type="checkbox"]), .profiles-add-form input, .stack-form input:not([type="checkbox"]), .stack-form select, .season-select) {
+  background: var(--input-bg);
+  border: var(--input-border);
+  color: var(--text);
+}
+html:where([data-theme]:not([data-theme="default"])) :is(.login-card input, .stack-form input, .stack-form select, .profiles-add-form input, .search-input):focus {
+  box-shadow: var(--focus-ring);
+  border-color: var(--accent);
+  outline: none;
+}
+html:where([data-theme]:not([data-theme="default"])) :is(button, a, [role="button"], .card):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Artwork tiles */
+html:where([data-theme]:not([data-theme="default"])) .card-box {
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+html:where([data-theme]:not([data-theme="default"])) .card:hover .card-box {
+  transform: var(--card-hover-transform);
+  box-shadow: var(--card-hover-shadow);
+  border-color: var(--card-hover-border);
+}
+html:where([data-theme]:not([data-theme="default"])) .card .card-title {
+  font-family: var(--font-card);
+  text-transform: var(--display-case);
+}
+html:where([data-theme]:not([data-theme="default"])) :is(.detail-poster, .tab-hero-poster) {
+  border-radius: var(--card-radius);
+}
+
+/* Type */
+html:where([data-theme]:not([data-theme="default"])) :is(.tab-hero-title, .detail-page-title, .page-title) {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  text-transform: var(--display-case);
+  letter-spacing: var(--display-tracking);
+  text-shadow: var(--title-shadow);
+}
+html:where([data-theme]:not([data-theme="default"])) :is(.shelf-block h2, .panel h2) {
+  font-family: var(--font-heading);
+  text-transform: var(--heading-case);
+}
+
+/* Buttons: solid (primary) */
+html:where([data-theme]:not([data-theme="default"])) :is(
+  .login-card button:not(.link-btn),
+  .stack-form button:not(.link-btn, .browser-open, .browser-pick, .browser-up),
+  .tab-hero-actions button:not(.secondary),
+  .detail-actions button:not(.secondary),
+  .profiles-add-form button[type="submit"],
+  .panel-link
+) {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border: var(--btn-border);
+  border-radius: var(--btn-radius);
+  box-shadow: var(--btn-shadow);
+  font-family: var(--btn-font);
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+html:where([data-theme]:not([data-theme="default"])) :is(
+  .login-card button:not(.link-btn),
+  .stack-form button:not(.link-btn, .browser-open, .browser-pick, .browser-up),
+  .tab-hero-actions button:not(.secondary),
+  .detail-actions button:not(.secondary),
+  .profiles-add-form button[type="submit"],
+  .panel-link
+):hover:not(:disabled) {
+  background: var(--btn-bg-hover);
+  box-shadow: var(--btn-hover-shadow);
+  transform: var(--btn-hover-transform);
+  filter: none;
+}
+html:where([data-theme]:not([data-theme="default"])) :is(
+  .login-card button:not(.link-btn),
+  .stack-form button:not(.link-btn, .browser-open, .browser-pick, .browser-up),
+  .tab-hero-actions button,
+  .detail-actions button,
+  .profiles-add-form button[type="submit"],
+  .panel-link
+):active:not(:disabled) {
+  transform: var(--btn-press-transform);
+}
+
+/* Buttons: secondary */
+html:where([data-theme]:not([data-theme="default"])) :is(
+  .tab-hero-actions button.secondary,
+  .detail-actions button.secondary,
+  #scanBtn, #checkBtn, #logoutBtn,
+  .twofa-actions button,
+  .backup-actions button:not(.link-btn)
+) {
+  background: var(--btn2-bg);
+  color: var(--btn2-text);
+  border: var(--btn2-border);
+  border-radius: var(--btn-radius);
+  box-shadow: var(--btn2-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html:where([data-theme]:not([data-theme="default"])) :is(
+  .tab-hero-actions button.secondary,
+  .detail-actions button.secondary,
+  #scanBtn, #checkBtn, #logoutBtn,
+  .twofa-actions button,
+  .backup-actions button:not(.link-btn)
+):hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+html:where([data-theme]:not([data-theme="default"])) :is(.genre-chip, .search-pill, .format-chip, .pill, .player-chip) {
+  border-radius: var(--chip-radius, 999px);
+}
+
+/* Hero + title page */
+html:where([data-theme]:not([data-theme="default"])) .tab-hero {
+  border: var(--hero-border);
+  border-radius: var(--hero-radius);
+  box-shadow: var(--hero-shadow);
+}
+html:where([data-theme]:not([data-theme="default"])) .tab-hero-scrim {
+  background: linear-gradient(90deg, rgba(var(--scrim), 0.94) 0%, rgba(var(--scrim), 0.72) 42%, rgba(var(--scrim), 0.1) 100%);
+}
+html:where([data-theme]:not([data-theme="default"])) .detail-backdrop-scrim {
+  background: linear-gradient(180deg, rgba(var(--scrim), 0.55) 0%, rgba(var(--scrim), 0.2) 40%, rgba(var(--scrim), 0.6) 100%);
+}
+html:where([data-theme]:not([data-theme="default"])) .detail-backdrop {
+  border-radius: var(--hero-radius) var(--hero-radius) 0 0;
+}
+
+/* Sign-in + profile picker share the page backdrop */
+html:where([data-theme]:not([data-theme="default"])) .login-visual {
+  background: radial-gradient(120% 90% at 20% 10%, var(--accent-tint) 0%, transparent 62%);
+}
+
+/* Effect layers sit behind the page (z-index -1 paints above the canvas
+   background body{} propagates, below every in-flow box). */
+.theme-fx {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.theme-fx canvas { display: block; }
+.fx-word { display: inline-block; white-space: nowrap; }
+
+
+/* =====================================================================
+   1. Particles — cinematic dark, warm amber key light, drifting motes
+   ===================================================================== */
+[data-theme="particles"] {
+  color-scheme: dark;
+  --bg: #05060b;
+  --bg-2: rgba(4, 5, 10, 0.55);
+  --surface: rgba(255, 240, 220, 0.055);
+  --surface-hover: rgba(255, 240, 220, 0.11);
+  --border: rgba(255, 228, 196, 0.13);
+  --border-soft: rgba(255, 228, 196, 0.07);
+  --glass: linear-gradient(160deg, rgba(255, 236, 214, 0.075), rgba(255, 236, 214, 0.02));
+  --glass-strong: rgba(8, 9, 16, 0.7);
+  --glass-blur: blur(26px) saturate(140%);
+  --glass-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 236, 214, 0.1);
+  --backdrop:
+    radial-gradient(900px 600px at 12% -8%, rgba(255, 170, 90, 0.20), transparent 62%),
+    radial-gradient(1100px 760px at 96% 8%, rgba(110, 140, 255, 0.16), transparent 62%),
+    radial-gradient(700px 500px at 50% 115%, rgba(255, 120, 80, 0.10), transparent 60%),
+    linear-gradient(180deg, #07080f, #05060b 60%, #04050a);
+  --text: #f6f1ea;
+  --text-secondary: #d9d1c6;
+  --muted: #a39b91;
+  --faint: #7c766e;
+  --dim: #8e877e;
+  --accent: #ffb86b;
+  --accent-hover: #ffd29e;
+  --accent-tint: rgba(255, 184, 107, 0.15);
+  --on-accent: #2a1600;
+  --radius: 20px;
+  --radius-sm: 14px;
+  --font-display: 'Sora', sans-serif;
+  --font-ui: 'Sora', sans-serif;
+  --font-body: 'Sora', sans-serif;
+  --display-case: none;
+  --display-weight: 600;
+  --display-tracking: -0.025em;
+  --heading-case: none;
+  --title-shadow: 0 0 40px rgba(255, 184, 107, 0.35), 0 2px 12px rgba(0, 0, 0, 0.6);
+  --card-border: 1px solid rgba(255, 228, 196, 0.08);
+  --card-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+  --card-hover-transform: translateY(-6px) scale(1.02);
+  --card-hover-shadow: 0 22px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 184, 107, 0.5), 0 0 34px rgba(255, 184, 107, 0.25);
+  --card-hover-border: rgba(255, 184, 107, 0.6);
+  --btn-radius: 999px;
+  --btn-shadow: 0 8px 30px rgba(255, 184, 107, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --btn-hover-shadow: 0 10px 40px rgba(255, 184, 107, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --hero-border: 1px solid rgba(255, 228, 196, 0.08);
+  --hero-shadow: 0 40px 90px rgba(0, 0, 0, 0.7);
+  --scrim: 5, 6, 11;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 0.35s;
+}
+html[data-theme="particles"] .card .card-title { font-weight: 600; letter-spacing: -0.01em; font-size: 18px; }
+html[data-theme="particles"] .tab-hero-title { font-size: 62px; line-height: 1.02; }
+html[data-theme="particles"] .tab-hero-badge,
+html[data-theme="particles"] .detail-kind { letter-spacing: 0.4em; }
+/* A slow light leak across the hero, like a projector beam. */
+html[data-theme="particles"][data-fx="on"] .tab-hero::after {
+  content: "";
+  position: absolute;
+  inset: -20% -40%;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 210, 160, 0.08) 50%, transparent 60%);
+  animation: hr-beam 9s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes hr-beam {
+  0%, 100% { transform: translateX(-25%); }
+  50% { transform: translateX(25%); }
+}
+
+
+/* =====================================================================
+   2. Liquid Morph — fluid gradients, blobs, pebble-round everything
+   ===================================================================== */
+[data-theme="liquid"] {
+  color-scheme: dark;
+  --bg: #0b0820;
+  --bg-2: rgba(10, 6, 30, 0.5);
+  --surface: rgba(255, 255, 255, 0.08);
+  --surface-hover: rgba(255, 255, 255, 0.15);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --glass: linear-gradient(140deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  --glass-strong: rgba(20, 12, 50, 0.6);
+  --glass-blur: blur(34px) saturate(180%);
+  --glass-shadow: 0 18px 50px rgba(5, 2, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --backdrop:
+    radial-gradient(800px 600px at 0% 0%, rgba(255, 122, 198, 0.35), transparent 60%),
+    radial-gradient(900px 700px at 100% 20%, rgba(94, 231, 255, 0.25), transparent 60%),
+    radial-gradient(900px 700px at 40% 110%, rgba(140, 90, 255, 0.35), transparent 60%),
+    linear-gradient(135deg, #120c34, #0b0820 60%, #0c1030);
+  --text: #f7f4ff;
+  --text-secondary: #dcd4f4;
+  --muted: #a99fcb;
+  --faint: #7e76a0;
+  --dim: #9289b6;
+  --accent: #ff7ac6;
+  --accent-hover: #ff9ed6;
+  --accent-tint: rgba(255, 122, 198, 0.18);
+  --on-accent: #2b0620;
+  --radius: 34px;
+  --radius-sm: 24px;
+  --font-display: 'Outfit', sans-serif;
+  --font-ui: 'Outfit', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+  --display-case: none;
+  --display-weight: 700;
+  --display-tracking: -0.03em;
+  --heading-case: none;
+  --nav-radius: 999px;
+  --nav-active-bg: linear-gradient(90deg, rgba(255, 122, 198, 0.35), rgba(140, 90, 255, 0.25));
+  --card-radius: 26px;
+  --card-border: 1px solid rgba(255, 255, 255, 0.14);
+  --card-shadow: 0 16px 36px rgba(10, 4, 40, 0.5);
+  --card-hover-transform: translateY(-6px);
+  --card-hover-shadow: 0 22px 48px rgba(255, 122, 198, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.3);
+  --card-hover-border: rgba(255, 255, 255, 0.35);
+  --btn-bg: linear-gradient(120deg, #ff7ac6, #a77bff 50%, #5ee7ff) 0 0 / 200% 100%;
+  --btn-bg-hover: linear-gradient(120deg, #ff7ac6, #a77bff 50%, #5ee7ff) 100% 0 / 200% 100%;
+  --btn-text: #1a0630;
+  --btn-radius: 999px;
+  --btn-shadow: 0 10px 30px rgba(167, 123, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --btn2-border: 1px solid rgba(255, 255, 255, 0.25);
+  --hero-radius: 40px;
+  --scrim: 14, 8, 40;
+  --ease: cubic-bezier(0.45, 0, 0.2, 1);
+  --dur: 0.45s;
+}
+html[data-theme="liquid"] :is(.tab-hero-title, .detail-page-title, .page-title) {
+  background: linear-gradient(100deg, #ffffff 20%, #ffc4e6 55%, #bdf6ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+html[data-theme="liquid"] .card .card-title { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
+html[data-theme="liquid"] :is(.tab-hero-actions button, .detail-actions button) { transition: background-position 0.6s var(--ease), transform 0.3s var(--ease), box-shadow 0.3s; }
+/* The blobs: three oversized, heavily blurred circles whose border-radius and
+   position morph on long, offset loops so they never visibly repeat. */
+.theme-fx-liquid i {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  filter: blur(70px);
+  opacity: 0.5;
+  border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+  animation: hr-morph 26s ease-in-out infinite alternate;
+}
+.theme-fx-liquid i:nth-child(1) { background: #ff5fb8; top: -12vmax; left: -10vmax; }
+.theme-fx-liquid i:nth-child(2) { background: #5ee7ff; top: 20vh; right: -14vmax; animation-duration: 32s; animation-delay: -8s; opacity: 0.35; }
+.theme-fx-liquid i:nth-child(3) { background: #8c5aff; bottom: -18vmax; left: 30vw; animation-duration: 38s; animation-delay: -15s; }
+@keyframes hr-morph {
+  0%   { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; transform: translate(0, 0) rotate(0deg); }
+  50%  { border-radius: 63% 37% 38% 62% / 54% 61% 39% 46%; transform: translate(6vw, 4vh) rotate(60deg); }
+  100% { border-radius: 36% 64% 52% 48% / 62% 38% 62% 38%; transform: translate(-4vw, 8vh) rotate(120deg); }
+}
+
+
+/* =====================================================================
+   3. Neon Glow — black glass, cyan + magenta tubes
+   ===================================================================== */
+[data-theme="neon"] {
+  color-scheme: dark;
+  --bg: #04020a;
+  --bg-2: rgba(0, 0, 0, 0.6);
+  --surface: rgba(0, 240, 255, 0.05);
+  --surface-hover: rgba(0, 240, 255, 0.11);
+  --border: rgba(0, 240, 255, 0.32);
+  --border-soft: rgba(0, 240, 255, 0.14);
+  --glass: linear-gradient(180deg, rgba(14, 6, 30, 0.82), rgba(6, 2, 16, 0.82));
+  --glass-strong: rgba(4, 2, 12, 0.82);
+  --glass-blur: blur(10px);
+  --glass-shadow: 0 0 0 1px rgba(0, 240, 255, 0.18), 0 0 24px rgba(0, 240, 255, 0.12), inset 0 0 24px rgba(255, 43, 214, 0.05);
+  --backdrop:
+    radial-gradient(800px 500px at 15% 0%, rgba(255, 43, 214, 0.22), transparent 60%),
+    radial-gradient(900px 600px at 90% 10%, rgba(0, 240, 255, 0.18), transparent 60%),
+    linear-gradient(rgba(0, 240, 255, 0.06) 1px, transparent 1px) 0 0 / 100% 48px,
+    linear-gradient(90deg, rgba(255, 43, 214, 0.05) 1px, transparent 1px) 0 0 / 48px 100%,
+    linear-gradient(#04020a, #04020a);
+  --text: #eafcff;
+  --text-secondary: #bfe9f0;
+  --muted: #7fb2bd;
+  --faint: #5d8590;
+  --dim: #6f9aa5;
+  --accent: #00f0ff;
+  --accent-hover: #7ff8ff;
+  --accent-tint: rgba(0, 240, 255, 0.12);
+  --on-accent: #001214;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font-display: 'Orbitron', sans-serif;
+  --font-ui: 'Rajdhani', sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
+  --display-weight: 800;
+  --display-tracking: 0.04em;
+  --title-shadow: 0 0 6px rgba(0, 240, 255, 0.9), 0 0 22px rgba(0, 240, 255, 0.6), 0 0 48px rgba(255, 43, 214, 0.45);
+  --nav-active-bg: linear-gradient(90deg, rgba(255, 43, 214, 0.22), transparent);
+  --nav-active-shadow: inset 2px 0 0 #ff2bd6, -6px 0 18px rgba(255, 43, 214, 0.45);
+  --card-border: 1px solid rgba(0, 240, 255, 0.45);
+  --card-shadow: 0 0 10px rgba(0, 240, 255, 0.25), inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+  --card-hover-transform: translateY(-3px);
+  --card-hover-border: #ff2bd6;
+  --card-hover-shadow: 0 0 14px rgba(255, 43, 214, 0.75), 0 0 40px rgba(255, 43, 214, 0.35);
+  --btn-bg: transparent;
+  --btn-bg-hover: #00f0ff;
+  --btn-text: #00f0ff;
+  --btn-border: 2px solid #00f0ff;
+  --btn-radius: 6px;
+  --btn-shadow: 0 0 12px rgba(0, 240, 255, 0.55), inset 0 0 12px rgba(0, 240, 255, 0.35);
+  --btn-hover-shadow: 0 0 22px rgba(0, 240, 255, 0.9), 0 0 60px rgba(0, 240, 255, 0.4);
+  --btn2-border: 2px solid rgba(255, 43, 214, 0.75);
+  --btn2-bg: transparent;
+  --btn2-shadow: 0 0 10px rgba(255, 43, 214, 0.35);
+  --hero-border: 1px solid rgba(0, 240, 255, 0.4);
+  --hero-shadow: 0 0 30px rgba(0, 240, 255, 0.2), 0 0 80px rgba(255, 43, 214, 0.12);
+  --scrim: 4, 2, 10;
+  --input-border: 1px solid rgba(0, 240, 255, 0.4);
+  --focus-ring: 0 0 0 2px rgba(0, 240, 255, 0.6), 0 0 16px rgba(0, 240, 255, 0.5);
+}
+html[data-theme="neon"] :is(.tab-hero-actions button:not(.secondary), .detail-actions button:not(.secondary), .stack-form button, .login-card button:not(.link-btn), .panel-link) {
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.9);
+}
+html[data-theme="neon"] :is(.tab-hero-actions button:not(.secondary), .detail-actions button:not(.secondary), .stack-form button, .login-card button:not(.link-btn), .panel-link):hover:not(:disabled) {
+  color: #001214;
+  text-shadow: none;
+}
+html[data-theme="neon"] :is(.shelf-block h2, .panel h2) {
+  color: #ff7ae6;
+  text-shadow: 0 0 8px rgba(255, 43, 214, 0.8), 0 0 20px rgba(255, 43, 214, 0.4);
+  letter-spacing: 0.14em;
+}
+html[data-theme="neon"] .card .card-title { font-size: 16px; letter-spacing: 0.06em; text-shadow: 0 0 10px rgba(0, 240, 255, 0.8); }
+html[data-theme="neon"] .tab-hero-title { font-size: 54px; line-height: 1.05; }
+html[data-theme="neon"] .brand .logo { filter: drop-shadow(0 0 6px #00f0ff) drop-shadow(0 0 14px #ff2bd6); color: #7ff8ff; }
+html[data-theme="neon"] .player-scrub-fill { box-shadow: 0 0 10px #00f0ff; }
+/* One flicker as the tube "strikes" when a hero appears, then steady. */
+html[data-theme="neon"][data-fx="on"] .tab-hero-title { animation: hr-strike 1.6s steps(1) 1 both; }
+@keyframes hr-strike {
+  0% { opacity: 0.15; } 8% { opacity: 1; } 12% { opacity: 0.3; } 18% { opacity: 1; }
+  40% { opacity: 0.6; } 44% { opacity: 1; } 100% { opacity: 1; }
+}
+
+
+/* =====================================================================
+   4. Y2K Chrome — brushed metal, glossy pills, aqua glints
+   ===================================================================== */
+[data-theme="chrome"] {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --bg-2: rgba(0, 0, 0, 0.45);
+  --surface: rgba(200, 215, 230, 0.09);
+  --surface-hover: rgba(200, 215, 230, 0.16);
+  --border: rgba(210, 222, 236, 0.28);
+  --border-soft: rgba(210, 222, 236, 0.12);
+  --glass: linear-gradient(180deg, rgba(60, 72, 88, 0.62), rgba(22, 28, 38, 0.72));
+  --glass-strong: rgba(18, 24, 34, 0.78);
+  --glass-blur: blur(16px) saturate(130%);
+  --glass-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+  --backdrop:
+    radial-gradient(1000px 500px at 50% -10%, rgba(106, 212, 255, 0.22), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #1b2330, #0d1117 55%, #121822);
+  --text: #f1f5f9;
+  --text-secondary: #cfd8e2;
+  --muted: #95a3b2;
+  --faint: #6e7b89;
+  --dim: #8592a0;
+  --accent: #6ad4ff;
+  --accent-hover: #a6e6ff;
+  --accent-tint: rgba(106, 212, 255, 0.16);
+  --on-accent: #0b1520;
+  --radius: 22px;
+  --radius-sm: 14px;
+  --font-display: 'Michroma', sans-serif;
+  --font-ui: 'Exo 2', sans-serif;
+  --font-body: 'Exo 2', sans-serif;
+  --display-tracking: 0.02em;
+  --nav-radius: 999px;
+  --nav-active-bg: linear-gradient(180deg, #f4f8fb, #aeb9c6 48%, #8794a3 52%, #d7dfe7);
+  --nav-active-text: #0b1520;
+  --nav-active-shadow: inset 0 1px 0 #fff, 0 3px 10px rgba(0, 0, 0, 0.45);
+  --card-border: 1px solid rgba(220, 230, 240, 0.5);
+  --card-shadow: 0 10px 26px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(150, 165, 180, 0.18);
+  --card-hover-border: #ffffff;
+  --card-hover-shadow: 0 16px 34px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(106, 212, 255, 0.45);
+  --btn-bg: linear-gradient(180deg, #ffffff 0%, #d6dee6 45%, #8f9cab 50%, #c3ccd6 100%);
+  --btn-bg-hover: linear-gradient(180deg, #ffffff 0%, #e6f6ff 45%, #7fc9ea 50%, #c6ecff 100%);
+  --btn-text: #0b1520;
+  --btn-radius: 999px;
+  --btn-border: 1px solid rgba(255, 255, 255, 0.7);
+  --btn-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 #fff, inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+  --btn2-bg: linear-gradient(180deg, rgba(90, 104, 120, 0.7), rgba(30, 38, 50, 0.8));
+  --btn2-border: 1px solid rgba(220, 230, 240, 0.45);
+  --btn2-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --hero-border: 1px solid rgba(220, 230, 240, 0.4);
+  --hero-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(140, 155, 170, 0.15);
+  --scrim: 10, 14, 20;
+}
+html[data-theme="chrome"] :is(.tab-hero-title, .detail-page-title, .page-title) {
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8ee 38%, #7d8a99 50%, #e9eef3 62%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
+}
+html[data-theme="chrome"] .tab-hero-title { font-size: 50px; line-height: 1.1; }
+html[data-theme="chrome"] .card .card-title { font-family: 'Exo 2', sans-serif; font-weight: 700; font-size: 17px; }
+/* Gloss: a curved top highlight across every tile, like a lacquered sticker. */
+html[data-theme="chrome"] .card-box::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 55% 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04));
+  border-radius: 0 0 50% 50% / 0 0 18% 18%;
+  pointer-events: none;
+  z-index: 1;
+}
+html[data-theme="chrome"] :is(.shelf-block h2, .panel h2) {
+  background: linear-gradient(180deg, #fff, #9aa6b2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 0.12em;
+}
+html[data-theme="chrome"] .brand .logo { color: #dfe7ef; filter: drop-shadow(0 0 6px rgba(106, 212, 255, 0.7)); }
+
+
+/* =====================================================================
+   5. Kinetic Type — huge moving headlines on flat black, acid accent
+   ===================================================================== */
+[data-theme="kinetic"] {
+  color-scheme: dark;
+  --bg: #0a0a0a;
+  --bg-2: #050505;
+  --surface: #161616;
+  --surface-hover: #222222;
+  --border: #2c2c2c;
+  --border-soft: #1c1c1c;
+  --glass: #121212;
+  --glass-strong: rgba(10, 10, 10, 0.92);
+  --glass-blur: none;
+  --glass-shadow: none;
+  --backdrop: linear-gradient(#0a0a0a, #0a0a0a);
+  --text: #ffffff;
+  --text-secondary: #d6d6d6;
+  --muted: #9a9a9a;
+  --faint: #6c6c6c;
+  --dim: #8a8a8a;
+  --accent: #d7ff3a;
+  --accent-hover: #ecff9a;
+  --accent-tint: rgba(215, 255, 58, 0.12);
+  --on-accent: #0a0a0a;
+  --radius: 4px;
+  --radius-sm: 2px;
+  --font-display: 'Archivo Black', sans-serif;
+  --font-ui: 'Barlow Condensed', sans-serif;
+  --font-heading: 'Archivo Black', sans-serif;
+  --display-tracking: -0.035em;
+  --chrome-blur: none;
+  --panel-blur: none;
+  --nav-radius: 0;
+  --nav-active-bg: transparent;
+  --nav-active-text: #d7ff3a;
+  --nav-active-shadow: inset 4px 0 0 #d7ff3a;
+  --card-border: 1px solid #1f1f1f;
+  --card-shadow: none;
+  --card-hover-transform: none;
+  --card-hover-border: #d7ff3a;
+  --btn-radius: 0;
+  --btn-hover-shadow: 6px 6px 0 #ffffff;
+  --btn-hover-transform: translate(-3px, -3px);
+  --btn2-bg: transparent;
+  --btn2-border: 2px solid #ffffff;
+  --hero-border: 0 solid transparent;
+  --hero-shadow: none;
+  --hero-radius: 0;
+  --scrim: 10, 10, 10;
+  --ease: cubic-bezier(0.7, 0, 0.2, 1);
+  --dur: 0.25s;
+}
+html[data-theme="kinetic"] .tab-hero-title { font-size: clamp(56px, 7.6vw, 112px); line-height: 0.86; }
+html[data-theme="kinetic"] .page-title { font-size: clamp(48px, 6vw, 88px); line-height: 0.9; }
+html[data-theme="kinetic"] .detail-page-title { font-size: clamp(48px, 5.6vw, 84px); line-height: 0.9; }
+html[data-theme="kinetic"] .shelf-block h2 { font-size: 34px; letter-spacing: -0.02em; line-height: 1; }
+/* Alternate words go hollow — the classic kinetic poster rhythm. */
+html[data-theme="kinetic"] :is(.tab-hero-title, .page-title) .fx-ch:nth-of-type(even) {
+  color: transparent;
+  -webkit-text-stroke: 2px #d7ff3a;
+}
+html[data-theme="kinetic"] .fx-ch { display: inline-block; }
+html[data-theme="kinetic"][data-fx="on"] .fx-ch {
+  animation: hr-rise 0.75s cubic-bezier(0.2, 0.9, 0.1, 1) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+@keyframes hr-rise {
+  from { transform: translateY(0.6em) skewY(8deg); opacity: 0; clip-path: inset(0 0 100% 0); }
+  to { transform: none; opacity: 1; clip-path: inset(0 0 -20% 0); }
+}
+html[data-theme="kinetic"] .card .card-title { font-size: 20px; letter-spacing: -0.02em; transition: letter-spacing 0.3s var(--ease); }
+html[data-theme="kinetic"] .card:hover .card-title { letter-spacing: 0.04em; color: #d7ff3a; }
+html[data-theme="kinetic"] .tab-btn:hover { transform: translateX(6px); }
+/* A thin ticker of the theme accent under the header. */
+html[data-theme="kinetic"] header { border-bottom: 3px solid #d7ff3a; }
+
+
+/* =====================================================================
+   6. Paper Cutout — kraft paper, stacked card stock, tape and torn edges
+   ===================================================================== */
+[data-theme="paper"] {
+  color-scheme: light;
+  --bg: #efe6d6;
+  --bg-2: #f6efe2;
+  --surface: #fbf6ec;
+  --surface-hover: #fff9ef;
+  --border: #d8cbb3;
+  --border-soft: #e6dcc8;
+  --glass: #fbf6ec;
+  --glass-strong: rgba(40, 32, 22, 0.78);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.35 0 0 0 0 0.2 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(1200px 700px at 20% 0%, #f5eddf, transparent 70%),
+    linear-gradient(#efe6d6, #efe6d6);
+  --text: #2b2620;
+  --text-secondary: #4a4238;
+  --muted: #6f6556;
+  --faint: #8b8170;
+  --dim: #7a705f;
+  --disabled: #b6aa94;
+  --accent: #e0533d;
+  --accent-hover: #c8432f;
+  --accent-tint: rgba(224, 83, 61, 0.14);
+  --on-accent: #fffaf2;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --font-display: 'Fredoka', sans-serif;
+  --font-ui: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+  --display-case: none;
+  --display-weight: 700;
+  --display-tracking: -0.01em;
+  --heading-case: none;
+  --chrome-bg: #f7f0e3;
+  --chrome-blur: none;
+  --chrome-shadow: 3px 0 0 #e3d6bf, 6px 0 14px rgba(80, 60, 30, 0.12);
+  --header-bg: #f7f0e3;
+  --nav-active-bg: #fffaf2;
+  --nav-active-shadow: 0 2px 0 #e3d6bf, 0 4px 10px rgba(80, 60, 30, 0.15);
+  --panel-bg: #fbf6ec;
+  --panel-blur: none;
+  --panel-border: 0 solid transparent;
+  --panel-shadow: 0 1px 0 #e0d3bc, 0 5px 0 -2px #f3ead9, 0 6px 0 -1px #dccfb6, 0 14px 24px rgba(80, 60, 30, 0.16);
+  --card-radius: 3px;
+  --card-border: 6px solid #fffdf8;
+  --card-shadow: 0 2px 3px rgba(80, 60, 30, 0.2), 0 10px 18px rgba(80, 60, 30, 0.18);
+  --card-hover-transform: translateY(-5px) rotate(0deg);
+  --card-hover-border: #ffffff;
+  --card-hover-shadow: 0 4px 6px rgba(80, 60, 30, 0.2), 0 18px 28px rgba(80, 60, 30, 0.22);
+  --btn-radius: 6px;
+  --btn-shadow: 0 3px 0 #a93622, 0 6px 10px rgba(80, 60, 30, 0.2);
+  --btn-hover-shadow: 0 5px 0 #a93622, 0 10px 16px rgba(80, 60, 30, 0.22);
+  --btn-hover-transform: translateY(-2px);
+  --btn-press-transform: translateY(2px);
+  --btn2-bg: #fffaf2;
+  --btn2-text: #2b2620;
+  --btn2-border: 0 solid transparent;
+  --btn2-shadow: 0 3px 0 #d8cbb3, 0 6px 10px rgba(80, 60, 30, 0.14);
+  --hero-border: 0 solid transparent;
+  --hero-radius: 6px;
+  --hero-shadow: 0 2px 0 #d8cbb3, 0 18px 34px rgba(80, 60, 30, 0.25);
+  --scrim: 36, 26, 16;
+  --input-bg: #fffdf8;
+  --input-border: 1px solid #d8cbb3;
+  --ease: cubic-bezier(0.3, 0.7, 0.4, 1);
+  --dur: 0.25s;
+}
+/* Each tile is a print stuck on at a slightly different angle. */
+html[data-theme="paper"] .card:nth-child(4n+1) .card-box { transform: rotate(-1.2deg); }
+html[data-theme="paper"] .card:nth-child(4n+2) .card-box { transform: rotate(0.8deg); }
+html[data-theme="paper"] .card:nth-child(4n+3) .card-box { transform: rotate(-0.4deg); }
+html[data-theme="paper"] .card:nth-child(4n) .card-box { transform: rotate(1.3deg); }
+html[data-theme="paper"] .card:hover .card-box { transform: var(--card-hover-transform); }
+html[data-theme="paper"] .card .card-title { font-size: 19px; }
+html[data-theme="paper"] .card .card-meta { color: #6f6556; }
+/* Masking tape across the top of panels and the hero. */
+html[data-theme="paper"] :is(.panel, .detail-fact-panel)::before,
+html[data-theme="paper"] .tab-hero::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 96px;
+  height: 22px;
+  translate: -50% 0;
+  rotate: -2deg;
+  background: rgba(240, 222, 170, 0.75);
+  box-shadow: 0 1px 2px rgba(80, 60, 30, 0.2);
+  z-index: 3;
+  pointer-events: none;
+}
+html[data-theme="paper"] :is(.panel, .detail-fact-panel) { position: relative; }
+/* Torn bottom edge on the hero. */
+html[data-theme="paper"] .tab-hero {
+  overflow: visible;
+  clip-path: polygon(0 0, 100% 0, 100% 97%, 96% 99%, 91% 97.5%, 85% 99.5%, 78% 97.8%, 71% 99.2%, 64% 97.6%, 57% 99.4%, 50% 97.7%, 43% 99.3%, 36% 97.6%, 29% 99.5%, 22% 97.8%, 15% 99.2%, 8% 97.6%, 3% 99%, 0 97.5%);
+}
+html[data-theme="paper"] .tab-hero::before { top: 6px; }
+html[data-theme="paper"] .shelf-block h2 {
+  display: inline-block;
+  background: #2f6f73;
+  color: #fffaf2;
+  padding: 4px 14px 6px;
+  border-radius: 3px;
+  rotate: -1deg;
+  box-shadow: 0 3px 0 #1f4c4f, 0 6px 10px rgba(80, 60, 30, 0.18);
+  margin-bottom: 10px;
+}
+html[data-theme="paper"] .tab-btn { color: #4a4238; }
+html[data-theme="paper"] .tab-btn.active { color: #e0533d; }
+
+
+/* =====================================================================
+   7. Holographic — iridescent foil that follows the pointer
+   ===================================================================== */
+[data-theme="holo"] {
+  color-scheme: dark;
+  --bg: #0c0d18;
+  --bg-2: rgba(6, 6, 14, 0.5);
+  --surface: rgba(220, 210, 255, 0.07);
+  --surface-hover: rgba(220, 210, 255, 0.14);
+  --border: rgba(214, 200, 255, 0.2);
+  --border-soft: rgba(214, 200, 255, 0.1);
+  --holo: linear-gradient(115deg, #ffb3e6, #b8a4ff 22%, #8fd3ff 40%, #7fffd4 58%, #fff3a6 78%, #ffb3e6);
+  --glass: linear-gradient(150deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.03));
+  --glass-strong: rgba(14, 14, 28, 0.66);
+  --glass-blur: blur(24px) saturate(190%);
+  --glass-shadow: 0 16px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --backdrop:
+    radial-gradient(900px 600px at 0% 0%, rgba(255, 179, 230, 0.22), transparent 60%),
+    radial-gradient(900px 700px at 100% 10%, rgba(127, 255, 212, 0.16), transparent 60%),
+    radial-gradient(1000px 700px at 50% 120%, rgba(143, 211, 255, 0.2), transparent 60%),
+    linear-gradient(160deg, #10112a, #0c0d18 60%, #0e1022);
+  --text: #f7f6ff;
+  --text-secondary: #dbd8f2;
+  --muted: #a3a0c4;
+  --faint: #78769a;
+  --dim: #8d8ab0;
+  --accent: #b8a4ff;
+  --accent-hover: #d6caff;
+  --accent-tint: rgba(184, 164, 255, 0.16);
+  --on-accent: #140c2e;
+  --radius: 20px;
+  --radius-sm: 14px;
+  --font-display: 'Syne', sans-serif;
+  --font-ui: 'Outfit', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+  --display-case: none;
+  --display-weight: 800;
+  --display-tracking: -0.02em;
+  --heading-case: none;
+  --nav-active-bg: linear-gradient(90deg, rgba(255, 179, 230, 0.22), rgba(127, 255, 212, 0.12));
+  --card-border: 1px solid rgba(255, 255, 255, 0.18);
+  --card-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --card-hover-transform: translateY(-5px);
+  --card-hover-border: rgba(255, 255, 255, 0.6);
+  --card-hover-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), 0 0 30px rgba(184, 164, 255, 0.35);
+  --btn-bg: var(--holo) 0 0 / 250% 100%;
+  --btn-bg-hover: var(--holo) 100% 0 / 250% 100%;
+  --btn-text: #140c2e;
+  --btn-radius: 999px;
+  --btn-shadow: 0 8px 26px rgba(184, 164, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --scrim: 10, 10, 24;
+}
+html[data-theme="holo"] :is(.tab-hero-title, .detail-page-title, .page-title) {
+  background: var(--holo);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+html[data-theme="holo"][data-fx="on"] :is(.tab-hero-title, .page-title) { animation: hr-foil 8s linear infinite; }
+@keyframes hr-foil { to { background-position: 200% 0; } }
+html[data-theme="holo"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button) { transition: background-position 0.8s ease, box-shadow 0.3s; }
+/* Foil: a colour-dodge rainbow over the poster whose angle tracks --mx/--my
+   (set by themes.js). Without a pointer it rests at the centre. */
+html[data-theme="holo"] .card-box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at calc(var(--mx, 0.5) * 100%) calc(var(--my, 0.3) * 100%), rgba(255, 255, 255, 0.45), transparent 45%),
+    linear-gradient(calc(110deg + var(--mx, 0.5) * 60deg), transparent 20%, rgba(255, 179, 230, 0.55) 35%, rgba(143, 211, 255, 0.55) 50%, rgba(127, 255, 212, 0.55) 62%, transparent 80%);
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+html[data-theme="holo"] .card:hover .card-box::after { opacity: 0.55; }
+html[data-theme="holo"] .card .card-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; text-transform: none; }
+/* Iridescent rim on panes: gradient border via a padding-box/border-box pair. */
+html[data-theme="holo"] :is(.panel, .detail-fact-panel, .login-card) {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(150deg, rgba(26, 26, 48, 0.9), rgba(14, 14, 30, 0.86)) padding-box,
+    var(--holo) border-box;
+}
+html[data-theme="holo"] .tab-hero { border-color: rgba(255, 255, 255, 0.25); }
+html[data-theme="holo"] .shelf-block h2 { font-weight: 700; }
+
+
+/* =====================================================================
+   8. Isometric — extruded tiles on a 30° grid
+   ===================================================================== */
+[data-theme="isometric"] {
+  color-scheme: dark;
+  --bg: #10162a;
+  --bg-2: #0b1020;
+  --surface: #1d2742;
+  --surface-hover: #26324f;
+  --border: #33416a;
+  --border-soft: #26324f;
+  --glass: #18213a;
+  --glass-strong: rgba(14, 20, 38, 0.92);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    repeating-linear-gradient(30deg, rgba(83, 209, 255, 0.05) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(150deg, rgba(83, 209, 255, 0.05) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg, rgba(83, 209, 255, 0.03) 0 1px, transparent 1px 69.28px),
+    linear-gradient(180deg, #121a33, #10162a);
+  --text: #eef3ff;
+  --text-secondary: #c9d3ea;
+  --muted: #8f9cbf;
+  --faint: #6a7699;
+  --dim: #7e8bb0;
+  --accent: #ffcf5a;
+  --accent-hover: #ffe08f;
+  --accent-tint: rgba(255, 207, 90, 0.14);
+  --on-accent: #241a00;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-ui: 'Space Grotesk', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --display-weight: 700;
+  --display-tracking: -0.02em;
+  --chrome-bg: #141c33;
+  --chrome-blur: none;
+  --chrome-shadow: 4px 0 0 #0a0f1f;
+  --header-bg: #141c33;
+  --nav-active-bg: #26324f;
+  --nav-active-shadow: 3px 3px 0 #0a0f1f, 1px 1px 0 #0a0f1f;
+  --panel-bg: #18213a;
+  --panel-blur: none;
+  --panel-border: 1px solid #33416a;
+  --panel-shadow: 1px 1px 0 #0d1326, 2px 2px 0 #0d1326, 3px 3px 0 #0d1326, 4px 4px 0 #0d1326, 5px 5px 0 #0d1326, 6px 6px 0 #0d1326, 10px 14px 24px rgba(0, 0, 0, 0.4);
+  --card-border: 1px solid #3a4a78;
+  --card-shadow: 1px 1px 0 #0a0f1f, 2px 2px 0 #0a0f1f, 3px 3px 0 #0a0f1f, 4px 4px 0 #0a0f1f, 5px 5px 0 #0a0f1f;
+  --card-hover-transform: translate(-5px, -5px);
+  --card-hover-border: #ffcf5a;
+  --card-hover-shadow: 1px 1px 0 #b8881c, 2px 2px 0 #b8881c, 3px 3px 0 #b8881c, 4px 4px 0 #b8881c, 5px 5px 0 #b8881c, 6px 6px 0 #b8881c, 7px 7px 0 #b8881c, 8px 8px 0 #b8881c, 9px 9px 0 #b8881c, 10px 10px 0 #b8881c, 16px 22px 28px rgba(0, 0, 0, 0.45);
+  --btn-radius: 6px;
+  --btn-shadow: 1px 1px 0 #b8881c, 2px 2px 0 #b8881c, 3px 3px 0 #b8881c, 4px 4px 0 #b8881c, 5px 5px 0 #b8881c;
+  --btn-hover-shadow: 1px 1px 0 #b8881c, 2px 2px 0 #b8881c, 3px 3px 0 #b8881c, 4px 4px 0 #b8881c, 5px 5px 0 #b8881c, 6px 6px 0 #b8881c, 7px 7px 0 #b8881c;
+  --btn-hover-transform: translate(-2px, -2px);
+  --btn-press-transform: translate(4px, 4px);
+  --btn2-bg: #1d2742;
+  --btn2-shadow: 1px 1px 0 #0a0f1f, 2px 2px 0 #0a0f1f, 3px 3px 0 #0a0f1f, 4px 4px 0 #0a0f1f;
+  --hero-border: 1px solid #3a4a78;
+  --hero-radius: 10px;
+  --hero-shadow: 2px 2px 0 #0a0f1f, 4px 4px 0 #0a0f1f, 6px 6px 0 #0a0f1f, 8px 8px 0 #0a0f1f, 10px 10px 0 #0a0f1f, 12px 12px 0 #0a0f1f, 20px 30px 40px rgba(0, 0, 0, 0.45);
+  --scrim: 12, 17, 34;
+  --ease: cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+html[data-theme="isometric"] .card .card-title { font-size: 17px; letter-spacing: -0.01em; font-weight: 700; }
+html[data-theme="isometric"] :is(.tab-hero-actions button, .detail-actions button):active { box-shadow: 1px 1px 0 #b8881c; }
+/* A small isometric cube glyph before every section heading. */
+html[data-theme="isometric"] :is(.shelf-block h2, .panel h2)::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 20px;
+  margin-right: 10px;
+  vertical-align: -2px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background:
+    linear-gradient(150deg, transparent 50%, #b8881c 50%) right bottom / 50% 75% no-repeat,
+    linear-gradient(210deg, transparent 50%, #e0a92b 50%) left bottom / 50% 75% no-repeat,
+    #ffcf5a;
+}
+html[data-theme="isometric"] .tab-hero-badge { color: #53d1ff; }
+
+
+/* =====================================================================
+   9. ASCII Art — phosphor terminal, one monospace, box-drawing borders
+   ===================================================================== */
+[data-theme="ascii"] {
+  color-scheme: dark;
+  --bg: #050805;
+  --bg-2: #020402;
+  --surface: rgba(125, 255, 138, 0.05);
+  --surface-hover: rgba(125, 255, 138, 0.12);
+  --border: rgba(125, 255, 138, 0.38);
+  --border-soft: rgba(125, 255, 138, 0.16);
+  --glass: rgba(6, 12, 6, 0.92);
+  --glass-strong: rgba(3, 6, 3, 0.94);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    repeating-linear-gradient(180deg, rgba(125, 255, 138, 0.025) 0 1px, transparent 1px 3px),
+    radial-gradient(1200px 800px at 50% 30%, rgba(40, 90, 40, 0.25), transparent 70%),
+    linear-gradient(#050805, #050805);
+  --text: #c8f7c5;
+  --text-secondary: #a6e3a2;
+  --muted: #6fae70;
+  --faint: #4c7f4d;
+  --dim: #5f9a60;
+  --disabled: #345a35;
+  --accent: #7dff8a;
+  --accent-hover: #b6ffbd;
+  --accent-tint: rgba(125, 255, 138, 0.12);
+  --on-accent: #031004;
+  --radius: 0;
+  --radius-sm: 0;
+  --font-display: 'VT323', monospace;
+  --font-ui: 'IBM Plex Mono', monospace;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'IBM Plex Mono', monospace;
+  --font-heading: 'IBM Plex Mono', monospace;
+  --display-tracking: 0.02em;
+  --title-shadow: 0 0 6px rgba(125, 255, 138, 0.6);
+  --chrome-blur: none;
+  --chrome-shadow: none;
+  --nav-radius: 0;
+  --nav-active-bg: #7dff8a;
+  --nav-active-text: #031004;
+  --panel-blur: none;
+  --panel-border: 1px dashed rgba(125, 255, 138, 0.5);
+  --panel-radius: 0;
+  --panel-shadow: none;
+  --card-radius: 0;
+  --card-border: 1px solid rgba(125, 255, 138, 0.45);
+  --card-shadow: none;
+  --card-hover-transform: none;
+  --card-hover-border: #7dff8a;
+  --card-hover-shadow: 0 0 0 1px #7dff8a, 0 0 18px rgba(125, 255, 138, 0.35);
+  --btn-bg: transparent;
+  --btn-bg-hover: #7dff8a;
+  --btn-text: #7dff8a;
+  --btn-border: 1px solid #7dff8a;
+  --btn-radius: 0;
+  --btn-press-transform: none;
+  --btn2-bg: transparent;
+  --btn2-border: 1px dashed rgba(125, 255, 138, 0.6);
+  --hero-radius: 0;
+  --hero-border: 1px solid rgba(125, 255, 138, 0.5);
+  --hero-shadow: none;
+  --chip-radius: 0;
+  --scrim: 2, 6, 2;
+  --on-art: #d9ffd6;
+  --input-border: 1px solid rgba(125, 255, 138, 0.5);
+  --focus-ring: 0 0 0 1px #7dff8a;
+  --dur: 0s;
+}
+html[data-theme="ascii"] body { font-size: 14px; }
+html[data-theme="ascii"] :is(.tab-hero-title, .detail-page-title, .page-title) { font-size: 64px; line-height: 0.95; }
+html[data-theme="ascii"] .tab-hero-title { font-size: 76px; }
+html[data-theme="ascii"] .tab-hero-title::after {
+  content: "█";
+  margin-left: 6px;
+  color: #7dff8a;
+}
+html[data-theme="ascii"][data-fx="on"] .tab-hero-title::after { animation: hr-blink 1.05s steps(1) infinite; }
+@keyframes hr-blink { 50% { opacity: 0; } }
+html[data-theme="ascii"] .shelf-block h2 { font-size: 16px; letter-spacing: 0.04em; }
+html[data-theme="ascii"] .shelf-block h2::before { content: "$ ls ./"; color: #6fae70; margin-right: 2px; text-transform: lowercase; }
+html[data-theme="ascii"] .panel h2::before { content: "┌─[ "; color: #6fae70; }
+html[data-theme="ascii"] .panel h2::after { content: " ]──"; color: #6fae70; }
+html[data-theme="ascii"] .panel h2 { font-size: 16px; }
+html[data-theme="ascii"] :is(.tab-hero-actions button:not(.secondary), .detail-actions button:not(.secondary), .stack-form button:not(.link-btn, .browser-open, .browser-pick, .browser-up), .login-card button:not(.link-btn))::before { content: "[ "; }
+html[data-theme="ascii"] :is(.tab-hero-actions button:not(.secondary), .detail-actions button:not(.secondary), .stack-form button:not(.link-btn, .browser-open, .browser-pick, .browser-up), .login-card button:not(.link-btn))::after { content: " ]"; }
+html[data-theme="ascii"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button):hover:not(:disabled) { color: #031004; }
+html[data-theme="ascii"] .card .card-title { font-family: 'VT323', monospace; font-size: 24px; }
+html[data-theme="ascii"] .tab-btn::before { content: ">"; width: 0.8em; color: transparent; flex: none; }
+html[data-theme="ascii"] .tab-btn.active::before { color: inherit; }
+html[data-theme="ascii"] .tab-btn { border-left: none; }
+html[data-theme="ascii"] .brand h1 { font-family: 'VT323', monospace; font-size: 30px; }
+html[data-theme="ascii"] .brand h1::after { content: "_"; }
+html[data-theme="ascii"] .player-scrub-fill { background: #7dff8a; }
+
+
+/* =====================================================================
+   10. Clay 3D — soft lavender clay, puffy squeezable controls
+   ===================================================================== */
+[data-theme="clay"] {
+  color-scheme: light;
+  --bg: #e9e3f5;
+  --bg-2: #e2daf2;
+  --surface: #f6f2fc;
+  --surface-hover: #ffffff;
+  --border: #d6cceb;
+  --border-soft: #e2daf2;
+  --glass: #f2edfa;
+  --glass-strong: rgba(46, 38, 80, 0.72);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --clay: 10px 10px 22px rgba(124, 92, 255, 0.18), -8px -8px 18px rgba(255, 255, 255, 0.85), inset -3px -3px 8px rgba(124, 92, 255, 0.1), inset 3px 3px 8px rgba(255, 255, 255, 0.9);
+  --backdrop:
+    radial-gradient(900px 600px at 10% 0%, #f4d9f0, transparent 60%),
+    radial-gradient(900px 600px at 100% 20%, #d9e6ff, transparent 60%),
+    linear-gradient(180deg, #ece6f7, #e5def3);
+  --text: #2e2650;
+  --text-secondary: #4b4272;
+  --muted: #6d6594;
+  --faint: #8c85b0;
+  --dim: #7a72a2;
+  --disabled: #b4aed0;
+  --accent: #7c5cff;
+  --accent-hover: #6a48f5;
+  --accent-tint: rgba(124, 92, 255, 0.14);
+  --on-accent: #ffffff;
+  --radius: 30px;
+  --radius-sm: 22px;
+  --font-display: 'Fredoka', sans-serif;
+  --font-ui: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+  --display-case: none;
+  --display-weight: 700;
+  --display-tracking: -0.01em;
+  --heading-case: none;
+  --chrome-bg: #efe9f9;
+  --chrome-blur: none;
+  --chrome-shadow: 8px 0 24px rgba(124, 92, 255, 0.1);
+  --header-bg: #efe9f9;
+  --nav-radius: 18px;
+  --nav-active-bg: #f8f5fe;
+  --nav-active-text: #7c5cff;
+  --nav-active-shadow: 5px 5px 12px rgba(124, 92, 255, 0.18), -4px -4px 10px rgba(255, 255, 255, 0.9);
+  --panel-bg: #f2edfa;
+  --panel-blur: none;
+  --panel-border: 0 solid transparent;
+  --panel-shadow: var(--clay);
+  --card-radius: 24px;
+  --card-border: 0 solid transparent;
+  --card-shadow: 10px 10px 22px rgba(124, 92, 255, 0.22), -6px -6px 16px rgba(255, 255, 255, 0.9);
+  --card-hover-transform: translateY(-6px) scale(1.03);
+  --card-hover-border: transparent;
+  --card-hover-shadow: 14px 18px 30px rgba(124, 92, 255, 0.28), -8px -8px 18px rgba(255, 255, 255, 0.95);
+  --btn-radius: 999px;
+  --btn-shadow: 6px 8px 16px rgba(124, 92, 255, 0.35), inset -4px -5px 10px rgba(50, 20, 160, 0.35), inset 4px 5px 10px rgba(255, 255, 255, 0.45);
+  --btn-hover-transform: scale(1.05);
+  --btn-press-transform: scale(0.94);
+  --btn2-bg: #f6f2fc;
+  --btn2-text: #4b4272;
+  --btn2-border: 0 solid transparent;
+  --btn2-shadow: 5px 5px 12px rgba(124, 92, 255, 0.18), -4px -4px 10px rgba(255, 255, 255, 0.9), inset -2px -2px 5px rgba(124, 92, 255, 0.08);
+  --hero-radius: 34px;
+  --hero-border: 0 solid transparent;
+  --hero-shadow: 16px 18px 40px rgba(124, 92, 255, 0.25), -10px -10px 26px rgba(255, 255, 255, 0.85);
+  --chip-radius: 999px;
+  --scrim: 40, 26, 90;
+  --input-bg: #ebe5f7;
+  --input-border: 0 solid transparent;
+  --ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur: 0.3s;
+}
+html[data-theme="clay"] :is(.login-card input:not([type="checkbox"]), .stack-form input:not([type="checkbox"]), .stack-form select, .search-input, .profiles-add-form input) {
+  box-shadow: inset 4px 4px 9px rgba(124, 92, 255, 0.16), inset -4px -4px 9px rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+}
+html[data-theme="clay"] .card .card-title { font-size: 19px; }
+html[data-theme="clay"] .shelf-block h2 { font-size: 26px; color: #7c5cff; }
+html[data-theme="clay"] :is(.genre-chip, .format-chip, .search-pill) {
+  background: #f6f2fc;
+  border-color: transparent;
+  box-shadow: 4px 4px 9px rgba(124, 92, 255, 0.16), -3px -3px 8px rgba(255, 255, 255, 0.9);
+}
+html[data-theme="clay"] .tab-btn:hover { transform: scale(1.03); }
+html[data-theme="clay"] .nav-profile-initial { box-shadow: var(--btn-shadow); background: #ff9a8b; color: #fff; }
+
+
+/* =====================================================================
+   11. Retro VHS — scanlines, tape noise, colour bleed, an OSD
+   ===================================================================== */
+[data-theme="vhs"] {
+  color-scheme: dark;
+  --bg: #0a0a12;
+  --bg-2: rgba(0, 0, 0, 0.5);
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.16);
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --glass: linear-gradient(180deg, rgba(26, 24, 52, 0.78), rgba(14, 14, 30, 0.82));
+  --glass-strong: rgba(10, 10, 20, 0.82);
+  --glass-blur: blur(6px);
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --backdrop:
+    radial-gradient(1000px 600px at 20% 0%, rgba(255, 59, 107, 0.18), transparent 60%),
+    radial-gradient(900px 600px at 90% 20%, rgba(59, 240, 255, 0.12), transparent 60%),
+    linear-gradient(180deg, #14122a, #0a0a12 60%, #0d0b1c);
+  --text: #f4f0ff;
+  --text-secondary: #d7d0ec;
+  --muted: #a097bd;
+  --faint: #756d92;
+  --dim: #8a82a8;
+  --accent: #ff3b6b;
+  --accent-hover: #ff6f91;
+  --accent-tint: rgba(255, 59, 107, 0.15);
+  --on-accent: #ffffff;
+  --radius: 6px;
+  --radius-sm: 3px;
+  --font-display: 'VT323', monospace;
+  --font-ui: 'VT323', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
+  --display-tracking: 0.04em;
+  --title-shadow: -2px 0 rgba(255, 59, 107, 0.8), 2px 0 rgba(59, 240, 255, 0.8), 0 0 18px rgba(255, 255, 255, 0.25);
+  --nav-active-bg: linear-gradient(90deg, rgba(255, 59, 107, 0.25), transparent);
+  --card-border: 1px solid rgba(255, 255, 255, 0.1);
+  --card-shadow: -2px 0 0 rgba(255, 59, 107, 0.35), 2px 0 0 rgba(59, 240, 255, 0.35), 0 10px 22px rgba(0, 0, 0, 0.5);
+  --card-hover-transform: none;
+  --card-hover-border: rgba(255, 255, 255, 0.4);
+  --card-hover-shadow: -4px 0 0 rgba(255, 59, 107, 0.6), 4px 0 0 rgba(59, 240, 255, 0.6), 0 12px 26px rgba(0, 0, 0, 0.5);
+  --btn-radius: 3px;
+  --btn-shadow: -2px 0 0 rgba(59, 240, 255, 0.7), 2px 0 0 rgba(255, 210, 59, 0.6);
+  --btn-hover-shadow: -3px 0 0 rgba(59, 240, 255, 0.9), 3px 0 0 rgba(255, 210, 59, 0.8);
+  --hero-radius: 6px;
+  --scrim: 10, 10, 20;
+}
+html[data-theme="vhs"] .tab-btn,
+html[data-theme="vhs"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button, .pill) { font-size: 20px; letter-spacing: 0.08em; }
+html[data-theme="vhs"] .shelf-block h2 { font-size: 30px; letter-spacing: 0.08em; text-shadow: -1px 0 rgba(255, 59, 107, 0.8), 1px 0 rgba(59, 240, 255, 0.8); }
+html[data-theme="vhs"] .panel h2 { font-size: 26px; }
+html[data-theme="vhs"] .tab-hero-title { font-size: 84px; line-height: 0.85; }
+html[data-theme="vhs"] :is(.detail-page-title, .page-title) { font-size: 72px; line-height: 0.85; }
+html[data-theme="vhs"] .card .card-title { font-size: 26px; text-shadow: -1px 0 rgba(255, 59, 107, 0.9), 1px 0 rgba(59, 240, 255, 0.9); }
+html[data-theme="vhs"] .tab-hero-meta { font-family: 'Share Tech Mono', monospace; }
+/* Scanlines over the whole UI (under the player, which has its own picture). */
+html[data-theme="vhs"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}
+/* A tracking band that rolls down the hero every few seconds. */
+html[data-theme="vhs"][data-fx="on"] .tab-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 18%;
+  top: -20%;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0.16) 50%, rgba(255, 255, 255, 0.08) 60%, transparent);
+  animation: hr-track 7s linear infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes hr-track { 0%, 70% { top: -20%; } 100% { top: 110%; } }
+/* Brief jitter as a tile is pointed at, like a paused frame wobbling. */
+html[data-theme="vhs"][data-fx="on"] .card:hover .card-box { animation: hr-jitter 0.35s steps(3) 1; }
+@keyframes hr-jitter {
+  0% { transform: translateX(0); } 33% { transform: translateX(-2px) skewX(-1deg); }
+  66% { transform: translateX(2px); } 100% { transform: none; }
+}
+.theme-fx-vhs {
+  z-index: 140;
+  inset: auto 22px 18px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-family: 'VT323', monospace;
+  font-size: 26px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: -1px 0 rgba(255, 59, 107, 0.9), 1px 0 rgba(59, 240, 255, 0.9), 0 0 8px rgba(0, 0, 0, 0.8);
+  overflow: visible;
+}
+.theme-fx-vhs .vhs-osd-play { animation: hr-blink 1.6s steps(1) infinite; }
+@media (max-width: 860px) { .theme-fx-vhs { display: none; } }
+
+
+/* =====================================================================
+   12. Comic Book — newsprint, halftone, ink outlines, captions
+   ===================================================================== */
+[data-theme="comic"] {
+  color-scheme: light;
+  --ink: #111111;
+  --bg: #fff6dc;
+  --bg-2: #fffbee;
+  --surface: #ffffff;
+  --surface-hover: #fff1b8;
+  --border: #111111;
+  --border-soft: rgba(17, 17, 17, 0.25);
+  --glass: #ffffff;
+  --glass-strong: rgba(17, 17, 17, 0.85);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    radial-gradient(rgba(232, 32, 42, 0.13) 1.6px, transparent 1.8px) 0 0 / 12px 12px,
+    radial-gradient(rgba(31, 111, 235, 0.10) 1.6px, transparent 1.8px) 6px 6px / 12px 12px,
+    linear-gradient(#fff6dc, #fff6dc);
+  --text: #111111;
+  --text-secondary: #2a2a2a;
+  --muted: #4d4d4d;
+  --faint: #6b6b6b;
+  --dim: #555555;
+  --disabled: #9a9a9a;
+  --accent: #e8202a;
+  --accent-hover: #ff3b44;
+  --accent-tint: rgba(232, 32, 42, 0.14);
+  --on-accent: #ffffff;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --font-display: 'Bangers', cursive;
+  --font-ui: 'Bangers', cursive;
+  --font-body: 'Comic Neue', 'Comic Sans MS', cursive;
+  --display-tracking: 0.04em;
+  --chrome-bg: #ffffff;
+  --chrome-blur: none;
+  --chrome-shadow: 4px 0 0 #111;
+  --header-bg: #ffffff;
+  --nav-radius: 4px;
+  --nav-active-bg: #ffd60a;
+  --nav-active-text: #111;
+  --nav-active-shadow: 3px 3px 0 #111, inset 0 0 0 2px #111;
+  --panel-bg: #ffffff;
+  --panel-blur: none;
+  --panel-border: 3px solid #111;
+  --panel-radius: 6px;
+  --panel-shadow: 6px 6px 0 #111;
+  --card-radius: 4px;
+  --card-border: 3px solid #111;
+  --card-shadow: 5px 5px 0 #111;
+  --card-hover-transform: rotate(-1.5deg) scale(1.03);
+  --card-hover-border: #111;
+  --card-hover-shadow: 8px 8px 0 #e8202a;
+  --btn-radius: 6px;
+  --btn-border: 3px solid #111;
+  --btn-shadow: 4px 4px 0 #111;
+  --btn-hover-shadow: 6px 6px 0 #111;
+  --btn-hover-transform: translate(-2px, -2px) rotate(-1deg);
+  --btn-press-transform: translate(3px, 3px);
+  --btn2-bg: #ffffff;
+  --btn2-text: #111;
+  --btn2-border: 3px solid #111;
+  --btn2-shadow: 4px 4px 0 #111;
+  --hero-radius: 6px;
+  --hero-border: 4px solid #111;
+  --hero-shadow: 10px 10px 0 #111;
+  --chip-radius: 4px;
+  --scrim: 10, 10, 30;
+  --input-bg: #ffffff;
+  --input-border: 3px solid #111;
+  --focus-ring: 4px 4px 0 #1f6feb;
+  --ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur: 0.2s;
+}
+html[data-theme="comic"] body { font-weight: 700; }
+html[data-theme="comic"] :is(.tab-hero-title, .detail-page-title, .page-title) { line-height: 0.95; }
+html[data-theme="comic"] .tab-hero-title {
+  font-size: 80px;
+  color: #ffd60a;
+  -webkit-text-stroke: 2px #111;
+  paint-order: stroke fill;
+  text-shadow: 5px 5px 0 #111;
+}
+html[data-theme="comic"] .page-title { color: #e8202a; -webkit-text-stroke: 1.5px #111; paint-order: stroke fill; text-shadow: 4px 4px 0 #111; font-size: 64px; }
+html[data-theme="comic"] .detail-page-title { color: #111; text-shadow: 3px 3px 0 #ffd60a; font-size: 64px; }
+/* Section heads are yellow caption boxes, slightly askew. */
+html[data-theme="comic"] .shelf-block h2 {
+  display: inline-block;
+  background: #ffd60a;
+  border: 3px solid #111;
+  box-shadow: 4px 4px 0 #111;
+  padding: 2px 14px;
+  rotate: -1.5deg;
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+/* Panel headings as speech bubbles. */
+html[data-theme="comic"] .panel h2 {
+  position: relative;
+  display: inline-block;
+  background: #fff;
+  border: 3px solid #111;
+  border-radius: 18px;
+  padding: 4px 16px;
+  margin-bottom: 14px;
+  font-size: 24px;
+}
+html[data-theme="comic"] .panel h2::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  bottom: -14px;
+  width: 18px;
+  height: 14px;
+  background: #fff;
+  border-left: 3px solid #111;
+  border-bottom: 3px solid #111;
+  transform: skewX(-30deg);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+/* The hero badge becomes a slanted red banner. */
+html[data-theme="comic"] .tab-hero-badge {
+  display: inline-grid;
+  place-items: center;
+  align-self: flex-start;
+  padding: 6px 22px 5px;
+  background: #e8202a;
+  color: #fff;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  rotate: -3deg;
+  filter: drop-shadow(3px 3px 0 #111);
+  clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%);
+}
+/* Halftone shading on artwork edges. */
+html[data-theme="comic"] .tab-hero-stripes,
+html[data-theme="comic"] .detail-backdrop-stripes {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.35) 1.4px, transparent 1.6px);
+  background-size: 7px 7px;
+  -webkit-mask-image: linear-gradient(90deg, #000, transparent 70%);
+  mask-image: linear-gradient(90deg, #000, transparent 70%);
+}
+html[data-theme="comic"] .card .card-title { font-size: 24px; letter-spacing: 0.04em; -webkit-text-stroke: 1px #111; paint-order: stroke fill; text-shadow: 2px 2px 0 #111; }
+html[data-theme="comic"] .tab-btn { font-size: 18px; letter-spacing: 0.06em; color: #111; }
+html[data-theme="comic"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button) { font-size: 20px; letter-spacing: 0.08em; }
+
+
+/* =====================================================================
+   13. Split-Flap — a departures board; titles flip in letter by letter
+   ===================================================================== */
+[data-theme="splitflap"] {
+  color-scheme: dark;
+  --flap: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 49%, #070707 49.5%, #070707 50.5%, #1a1a1a 51%, #242424 100%);
+  --bg: #0e0e0e;
+  --bg-2: #080808;
+  --surface: #1c1c1c;
+  --surface-hover: #262626;
+  --border: #2e2e2e;
+  --border-soft: #1f1f1f;
+  --glass: #151515;
+  --glass-strong: rgba(14, 14, 14, 0.94);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    repeating-linear-gradient(180deg, transparent 0 55px, rgba(255, 255, 255, 0.018) 55px 56px),
+    linear-gradient(180deg, #121212, #0b0b0b);
+  --text: #f2f2f2;
+  --text-secondary: #cfcfcf;
+  --muted: #9b9b9b;
+  --faint: #6e6e6e;
+  --dim: #8a8a8a;
+  --accent: #ffc531;
+  --accent-hover: #ffd76a;
+  --accent-tint: rgba(255, 197, 49, 0.14);
+  --on-accent: #161000;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-ui: 'Barlow Condensed', sans-serif;
+  --font-heading: 'Barlow Condensed', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  --display-weight: 700;
+  --display-tracking: 0;
+  --chrome-bg: #121212;
+  --chrome-blur: none;
+  --chrome-shadow: inset -1px 0 0 #222;
+  --header-bg: #121212;
+  --nav-radius: 3px;
+  --nav-active-bg: var(--flap);
+  --nav-active-text: #ffc531;
+  --nav-active-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  --panel-bg: #151515;
+  --panel-blur: none;
+  --panel-border: 1px solid #262626;
+  --panel-radius: 6px;
+  --panel-shadow: inset 0 1px 0 #222, 0 10px 24px rgba(0, 0, 0, 0.5);
+  --card-radius: 4px;
+  --card-border: 1px solid #2a2a2a;
+  --card-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+  --card-hover-transform: translateY(-3px);
+  --card-hover-border: #ffc531;
+  --btn-radius: 4px;
+  --btn-bg: linear-gradient(180deg, #ffd25a 0%, #ffc531 49%, #8a6400 49.5%, #8a6400 50.5%, #f0b41a 51%, #ffc531 100%);
+  --btn-bg-hover: linear-gradient(180deg, #ffe08a 0%, #ffd25a 49%, #8a6400 49.5%, #8a6400 50.5%, #ffc531 51%, #ffd25a 100%);
+  --btn-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  --btn2-bg: var(--flap);
+  --btn2-border: 1px solid #333;
+  --hero-radius: 6px;
+  --hero-border: 1px solid #262626;
+  --chip-radius: 3px;
+  --scrim: 10, 10, 10;
+  --dur: 0.15s;
+}
+/* Each character of a heading sits on its own flap tile. */
+html[data-theme="splitflap"] :is(.tab-hero-title, .page-title, .detail-page-title, .shelf-block h2) .fx-ch {
+  display: inline-block;
+  min-width: 0.62em;
+  margin: 0 0.04em 0.08em 0;
+  padding: 0.06em 0.06em 0.02em;
+  text-align: center;
+  background: var(--flap);
+  border-radius: 0.08em;
+  box-shadow: 0 0.04em 0.08em rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform-origin: 50% 50%;
+}
+html[data-theme="splitflap"] :is(.tab-hero-title, .page-title, .detail-page-title) { line-height: 1.12; }
+html[data-theme="splitflap"] .tab-hero-title { font-size: 54px; }
+html[data-theme="splitflap"] :is(.page-title, .detail-page-title) { font-size: 46px; }
+html[data-theme="splitflap"] .shelf-block h2 { font-size: 20px; color: #ffc531; }
+html[data-theme="splitflap"] .shelf-block h2 .fx-ch { padding: 0.08em 0.1em 0.02em; }
+html[data-theme="splitflap"][data-fx="on"] .fx-ch {
+  animation: hr-flip 0.5s cubic-bezier(0.5, 0, 0.5, 1.4) both;
+  animation-delay: calc(var(--i) * 35ms);
+}
+@keyframes hr-flip {
+  0% { transform: perspective(300px) rotateX(-90deg); filter: brightness(0.4); }
+  60% { transform: perspective(300px) rotateX(12deg); }
+  100% { transform: perspective(300px) rotateX(0); filter: none; }
+}
+html[data-theme="splitflap"] .card .card-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.04em; }
+html[data-theme="splitflap"] .card .card-meta { color: #ffc531; font-family: 'Share Tech Mono', monospace; }
+html[data-theme="splitflap"] .tab-hero-meta { color: #ffc531; font-family: 'Share Tech Mono', monospace; }
+/* Nav rows read like board lines: platform number gutter. */
+html[data-theme="splitflap"] .tab-btn { letter-spacing: 0.1em; border-left: none; }
+
+
+/* =====================================================================
+   14. Hand-Drawn — pencil on notebook paper
+   ===================================================================== */
+[data-theme="sketch"] {
+  color-scheme: light;
+  --wobbly: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --wobbly-2: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  --bg: #fbfaf4;
+  --bg-2: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #fdf7d8;
+  --border: #2b2b2b;
+  --border-soft: rgba(43, 43, 43, 0.3);
+  --glass: #ffffff;
+  --glass-strong: rgba(30, 30, 30, 0.82);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    linear-gradient(90deg, transparent 72px, rgba(226, 87, 76, 0.35) 72px 74px, transparent 74px),
+    repeating-linear-gradient(180deg, transparent 0 27px, rgba(43, 89, 195, 0.13) 27px 28px),
+    linear-gradient(#fbfaf4, #fbfaf4);
+  --text: #2b2b2b;
+  --text-secondary: #404040;
+  --muted: #5f5f5f;
+  --faint: #7e7e7e;
+  --dim: #6a6a6a;
+  --disabled: #b3b3b3;
+  --accent: #2b59c3;
+  --accent-hover: #1e45a0;
+  --accent-tint: rgba(43, 89, 195, 0.12);
+  --on-accent: #ffffff;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-display: 'Caveat', cursive;
+  --font-ui: 'Patrick Hand', cursive;
+  --font-body: 'Patrick Hand', cursive;
+  --font-heading: 'Caveat', cursive;
+  --font-mono: 'Patrick Hand', cursive;
+  --display-case: none;
+  --display-weight: 700;
+  --display-tracking: 0;
+  --heading-case: none;
+  --chrome-bg: #ffffff;
+  --chrome-blur: none;
+  --chrome-shadow: 2px 0 0 #2b2b2b;
+  --header-bg: rgba(251, 250, 244, 0.96);
+  --nav-radius: var(--wobbly);
+  --nav-active-bg: #fff3a3;
+  --nav-active-shadow: inset 0 0 0 2px #2b2b2b;
+  --panel-bg: #ffffff;
+  --panel-blur: none;
+  --panel-border: 2px solid #2b2b2b;
+  --panel-radius: var(--wobbly);
+  --panel-shadow: 3px 4px 0 rgba(43, 43, 43, 0.85);
+  --card-radius: var(--wobbly-2);
+  --card-border: 2px solid #2b2b2b;
+  --card-shadow: 3px 4px 0 rgba(43, 43, 43, 0.85);
+  --card-hover-transform: rotate(-1.5deg) translateY(-3px);
+  --card-hover-border: #2b59c3;
+  --card-hover-shadow: 5px 6px 0 #2b59c3;
+  --btn-radius: var(--wobbly);
+  --btn-border: 2px solid #2b2b2b;
+  --btn-shadow: 2px 3px 0 #2b2b2b;
+  --btn-hover-shadow: 3px 5px 0 #2b2b2b;
+  --btn-hover-transform: rotate(-1deg);
+  --btn-press-transform: translate(2px, 2px);
+  --btn2-bg: #ffffff;
+  --btn2-text: #2b2b2b;
+  --btn2-border: 2px solid #2b2b2b;
+  --btn2-shadow: 2px 3px 0 #2b2b2b;
+  --hero-radius: var(--wobbly-2);
+  --hero-border: 3px solid #2b2b2b;
+  --hero-shadow: 5px 6px 0 rgba(43, 43, 43, 0.85);
+  --chip-radius: var(--wobbly);
+  --scrim: 24, 24, 30;
+  --input-bg: #ffffff;
+  --input-border: 2px solid #2b2b2b;
+  --focus-ring: 3px 3px 0 #2b59c3;
+}
+html[data-theme="sketch"] body { font-size: 16px; }
+html[data-theme="sketch"] .tab-hero-title { font-size: 84px; line-height: 0.9; }
+html[data-theme="sketch"] :is(.page-title, .detail-page-title) { font-size: 66px; line-height: 0.95; }
+html[data-theme="sketch"] .card .card-title { font-size: 26px; line-height: 0.95; }
+html[data-theme="sketch"] .card:nth-child(odd) .card-box { rotate: -0.6deg; }
+html[data-theme="sketch"] .card:nth-child(even) .card-box { rotate: 0.5deg; }
+/* Highlighter swipe under headings, plus a little doodle. */
+html[data-theme="sketch"] .shelf-block h2 {
+  display: inline-block;
+  font-size: 34px;
+  padding: 0 6px;
+  background: linear-gradient(100deg, transparent 2%, rgba(255, 228, 77, 0.75) 4%, rgba(255, 228, 77, 0.6) 94%, transparent 97%) 0 72% / 100% 42% no-repeat;
+}
+html[data-theme="sketch"] .shelf-block h2::after { content: " ✎"; color: #e2574c; font-size: 0.7em; }
+html[data-theme="sketch"] .panel h2 { font-size: 32px; }
+html[data-theme="sketch"] .panel h2::after { content: " ☆"; color: #2b59c3; font-size: 0.7em; }
+html[data-theme="sketch"] .tab-hero-title::after {
+  content: "";
+  display: block;
+  width: 70%;
+  height: 12px;
+  margin-top: 4px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 12' preserveAspectRatio='none'%3E%3Cpath d='M2 8 C 40 2, 80 11, 120 6 S 200 2, 240 7 S 290 9, 298 4' fill='none' stroke='%23ffe44d' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html[data-theme="sketch"] .tab-btn { font-size: 17px; color: #2b2b2b; border-left: none; }
+html[data-theme="sketch"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button, .pill) { font-size: 18px; text-transform: none; letter-spacing: 0.02em; }
+html[data-theme="sketch"] .card .card-meta { font-size: 13px; }
+
+
+/* =====================================================================
+   15. Blueprint — drafting grid, white linework, dimension callouts
+   ===================================================================== */
+[data-theme="blueprint"] {
+  color-scheme: dark;
+  --bg: #0b2a5b;
+  --bg-2: rgba(6, 26, 60, 0.6);
+  --surface: rgba(233, 244, 255, 0.06);
+  --surface-hover: rgba(233, 244, 255, 0.12);
+  --border: rgba(233, 244, 255, 0.45);
+  --border-soft: rgba(233, 244, 255, 0.18);
+  --glass: rgba(10, 44, 96, 0.72);
+  --glass-strong: rgba(8, 34, 76, 0.86);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    linear-gradient(rgba(233, 244, 255, 0.12) 1px, transparent 1px) -1px -1px / 120px 120px,
+    linear-gradient(90deg, rgba(233, 244, 255, 0.12) 1px, transparent 1px) -1px -1px / 120px 120px,
+    linear-gradient(rgba(233, 244, 255, 0.05) 1px, transparent 1px) -1px -1px / 24px 24px,
+    linear-gradient(90deg, rgba(233, 244, 255, 0.05) 1px, transparent 1px) -1px -1px / 24px 24px,
+    radial-gradient(1400px 900px at 50% 30%, #12407f, #0b2a5b 70%);
+  --text: #e9f4ff;
+  --text-secondary: #c4daf2;
+  --muted: #8fb0d6;
+  --faint: #6d8fba;
+  --dim: #82a4cc;
+  --accent: #7fd3ff;
+  --accent-hover: #b8e6ff;
+  --accent-tint: rgba(127, 211, 255, 0.14);
+  --on-accent: #062044;
+  --radius: 0;
+  --radius-sm: 0;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-ui: 'IBM Plex Mono', monospace;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-heading: 'IBM Plex Mono', monospace;
+  --display-weight: 500;
+  --display-tracking: 0.08em;
+  --chrome-bg: rgba(8, 34, 76, 0.85);
+  --chrome-blur: none;
+  --chrome-shadow: none;
+  --header-bg: rgba(8, 34, 76, 0.9);
+  --nav-radius: 0;
+  --nav-active-bg: rgba(233, 244, 255, 0.1);
+  --nav-active-shadow: inset 0 0 0 1px rgba(233, 244, 255, 0.6);
+  --panel-bg: rgba(10, 44, 96, 0.72);
+  --panel-blur: none;
+  --panel-border: 1px solid rgba(233, 244, 255, 0.55);
+  --panel-radius: 0;
+  --panel-shadow: none;
+  --card-radius: 0;
+  --card-border: 1px solid rgba(233, 244, 255, 0.6);
+  --card-shadow: 6px 6px 0 -1px rgba(233, 244, 255, 0.08);
+  --card-hover-transform: translate(-3px, -3px);
+  --card-hover-border: #ffffff;
+  --card-hover-shadow: 6px 6px 0 -1px rgba(233, 244, 255, 0.25);
+  --btn-bg: transparent;
+  --btn-bg-hover: #e9f4ff;
+  --btn-text: #e9f4ff;
+  --btn-border: 1px solid #e9f4ff;
+  --btn-radius: 0;
+  --btn2-bg: transparent;
+  --btn2-border: 1px dashed rgba(233, 244, 255, 0.7);
+  --hero-radius: 0;
+  --hero-border: 1px solid rgba(233, 244, 255, 0.6);
+  --hero-shadow: none;
+  --chip-radius: 0;
+  --scrim: 8, 34, 76;
+  --input-bg: rgba(6, 26, 60, 0.6);
+  --input-border: 1px solid rgba(233, 244, 255, 0.5);
+  --focus-ring: 0 0 0 1px #e9f4ff;
+}
+html[data-theme="blueprint"] :is(.tab-hero-actions button:not(.secondary), .detail-actions button:not(.secondary), .stack-form button, .login-card button:not(.link-btn), .panel-link):hover:not(:disabled) { color: #062044; }
+html[data-theme="blueprint"] .tab-hero-title { font-size: 58px; line-height: 1; }
+html[data-theme="blueprint"] .card .card-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: 0.06em; font-size: 15px; }
+/* Drawing annotations: figure label on the hero, section marks, and corner
+   registration ticks on panes. */
+html[data-theme="blueprint"] .tab-hero::before {
+  content: "FIG. 01 — FEATURE / SCALE 1:1";
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 3;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: rgba(233, 244, 255, 0.75);
+  padding: 4px 8px;
+  border: 1px solid rgba(233, 244, 255, 0.5);
+}
+html[data-theme="blueprint"] .shelf-block h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  letter-spacing: 0.18em;
+}
+html[data-theme="blueprint"] .shelf-block h2::before { content: "§"; color: #7fd3ff; }
+html[data-theme="blueprint"] .shelf-block h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(233, 244, 255, 0.5) 0 6px, transparent 6px 10px);
+}
+html[data-theme="blueprint"] .panel h2 { font-size: 15px; letter-spacing: 0.18em; }
+html[data-theme="blueprint"] :is(.panel, .detail-fact-panel) {
+  position: relative;
+  background:
+    linear-gradient(#e9f4ff, #e9f4ff) 0 0 / 14px 1px no-repeat,
+    linear-gradient(#e9f4ff, #e9f4ff) 0 0 / 1px 14px no-repeat,
+    linear-gradient(#e9f4ff, #e9f4ff) 100% 100% / 14px 1px no-repeat,
+    linear-gradient(#e9f4ff, #e9f4ff) 100% 100% / 1px 14px no-repeat,
+    rgba(10, 44, 96, 0.72);
+}
+/* Posters read as plates pinned to the sheet: a faint cyan duotone that
+   lifts off on hover so the art is still the point. */
+html[data-theme="blueprint"] .card .poster { filter: saturate(0.75) contrast(1.05); transition: filter 0.2s; }
+html[data-theme="blueprint"] .card:hover .poster { filter: none; }
+
+
+/* =====================================================================
+   16. Physics — springs, inertia, squash and stretch
+   ===================================================================== */
+[data-theme="physics"] {
+  color-scheme: dark;
+  --spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1);
+  --bounce: cubic-bezier(0.34, 1.8, 0.5, 1);
+  --bg: #0d1020;
+  --bg-2: rgba(6, 8, 18, 0.55);
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.14);
+  --border-soft: rgba(255, 255, 255, 0.07);
+  --glass: linear-gradient(140deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  --glass-strong: rgba(14, 16, 32, 0.7);
+  --glass-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --backdrop:
+    radial-gradient(900px 600px at 0% 100%, rgba(255, 107, 74, 0.18), transparent 60%),
+    radial-gradient(900px 700px at 100% 0%, rgba(107, 224, 255, 0.16), transparent 60%),
+    linear-gradient(180deg, #11152b, #0d1020);
+  --text: #f3f5ff;
+  --text-secondary: #d2d7ee;
+  --muted: #98a0c4;
+  --faint: #6f7698;
+  --dim: #858db2;
+  --accent: #ff6b4a;
+  --accent-hover: #ff8f75;
+  --accent-tint: rgba(255, 107, 74, 0.15);
+  --on-accent: #ffffff;
+  --radius: 22px;
+  --radius-sm: 16px;
+  --font-display: 'Exo 2', sans-serif;
+  --font-ui: 'Exo 2', sans-serif;
+  --font-body: 'Exo 2', sans-serif;
+  --display-case: none;
+  --display-weight: 700;
+  --display-tracking: -0.02em;
+  --heading-case: none;
+  --nav-radius: 14px;
+  --card-radius: 18px;
+  --card-border: 1px solid rgba(255, 255, 255, 0.1);
+  --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  --card-hover-border: rgba(255, 107, 74, 0.7);
+  --card-hover-shadow: 0 26px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 107, 74, 0.5);
+  --card-hover-transform:
+    perspective(700px)
+    rotateX(calc((0.5 - var(--my, 0.5)) * 14deg))
+    rotateY(calc((var(--mx, 0.5) - 0.5) * 16deg))
+    translateY(-10px) scale(1.04);
+  --btn-radius: 999px;
+  --btn-shadow: 0 8px 20px rgba(255, 107, 74, 0.35);
+  --btn-hover-transform: scale(1.07);
+  --btn-press-transform: scale(1.06, 0.88);
+  --scrim: 10, 12, 26;
+  --ease: var(--spring);
+  --dur: 0.7s;
+}
+/* Pointer-follow tilt needs an immediate response while moving and the spring
+   only for the settle — so transform is fast-linear during hover. */
+html[data-theme="physics"] .card:hover .card-box { transition: transform 0.12s linear, box-shadow 0.4s ease, border-color 0.3s; }
+html[data-theme="physics"] .card:active .card-box { transform: scale(0.95); transition: transform 0.1s; }
+html[data-theme="physics"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button) { transition: transform 0.6s var(--spring), background 0.2s, box-shadow 0.3s; }
+html[data-theme="physics"] :is(.tab-hero-actions button, .detail-actions button):active { transition-duration: 0.08s; }
+html[data-theme="physics"] .tab-btn { transition: transform 0.6s var(--spring), background 0.2s, color 0.2s; }
+html[data-theme="physics"] .tab-btn:hover { transform: translateX(6px); }
+html[data-theme="physics"] .tab-btn:active { transform: translateX(6px) scale(0.94); transition-duration: 0.08s; }
+html[data-theme="physics"] :is(.genre-chip, .format-chip, .search-pill) { transition: transform 0.6s var(--spring); }
+html[data-theme="physics"] :is(.genre-chip, .format-chip, .search-pill):hover { transform: translateY(-3px) rotate(-2deg); }
+/* Content drops into place with a bounce whenever a tab opens. */
+html[data-theme="physics"][data-fx="on"] .tab-panel.active > * {
+  animation: hr-drop 0.9s var(--spring) both;
+}
+html[data-theme="physics"][data-fx="on"] .tab-panel.active > *:nth-child(2) { animation-delay: 60ms; }
+html[data-theme="physics"][data-fx="on"] .tab-panel.active > *:nth-child(3) { animation-delay: 120ms; }
+html[data-theme="physics"][data-fx="on"] .tab-panel.active > *:nth-child(n+4) { animation-delay: 180ms; }
+@keyframes hr-drop { from { transform: translateY(-28px); opacity: 0; } to { transform: none; opacity: 1; } }
+html[data-theme="physics"][data-fx="on"] .shelf .card { animation: hr-pop 0.8s var(--spring) both; animation-delay: calc(min(var(--n, 0), 8) * 40ms); }
+@keyframes hr-pop { from { transform: scale(0.6) translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+html[data-theme="physics"] .card .card-title { font-weight: 700; font-size: 18px; }
+
+
+/* =====================================================================
+   17. Pixel Art — 8-bit frames, console palette, stepped motion
+   ===================================================================== */
+[data-theme="pixel"] {
+  color-scheme: dark;
+  --px: 4px;
+  --bg: #1a1c2c;
+  --bg-2: #10111c;
+  --surface: #333c57;
+  --surface-hover: #415072;
+  --border: #566c86;
+  --border-soft: #333c57;
+  --glass: #262b44;
+  --glass-strong: #1a1c2c;
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    conic-gradient(from 90deg at 2px 2px, transparent 25%, rgba(255, 255, 255, 0.025) 0) 0 0 / 8px 8px,
+    linear-gradient(180deg, #1f2238, #1a1c2c);
+  --text: #f4f4f4;
+  --text-secondary: #d6dbe3;
+  --muted: #94b0c2;
+  --faint: #6b8299;
+  --dim: #8399ad;
+  --accent: #ffcd75;
+  --accent-hover: #ffe0a8;
+  --accent-tint: rgba(255, 205, 117, 0.16);
+  --on-accent: #1a1c2c;
+  --ok: #38b764;
+  --danger: #b13e53;
+  --radius: 0;
+  --radius-sm: 0;
+  --font-display: 'Press Start 2P', monospace;
+  --font-ui: 'VT323', monospace;
+  --font-heading: 'Press Start 2P', monospace;
+  --font-mono: 'VT323', monospace;
+  --display-tracking: 0;
+  --display-case: uppercase;
+  --title-shadow: 4px 4px 0 #000;
+  --pixel-frame: 0 calc(var(--px) * -1) 0 0 #000, 0 var(--px) 0 0 #000, calc(var(--px) * -1) 0 0 0 #000, var(--px) 0 0 0 #000;
+  --chrome-bg: #262b44;
+  --chrome-blur: none;
+  --chrome-shadow: 4px 0 0 #000;
+  --header-bg: #262b44;
+  --nav-radius: 0;
+  --nav-active-bg: #ffcd75;
+  --nav-active-text: #1a1c2c;
+  --nav-active-shadow: var(--pixel-frame);
+  --panel-bg: #262b44;
+  --panel-blur: none;
+  --panel-border: 0 solid transparent;
+  --panel-radius: 0;
+  --panel-shadow: var(--pixel-frame), inset 0 4px 0 #333c57, inset 0 -4px 0 #10111c;
+  --card-radius: 0;
+  --card-border: 0 solid transparent;
+  --card-shadow: var(--pixel-frame), 8px 8px 0 0 rgba(0, 0, 0, 0.4);
+  --card-hover-transform: translate(-4px, -4px);
+  --card-hover-border: transparent;
+  --card-hover-shadow: 0 -4px 0 0 #ffcd75, 0 4px 0 0 #ffcd75, -4px 0 0 0 #ffcd75, 4px 0 0 0 #ffcd75, 12px 12px 0 0 rgba(0, 0, 0, 0.45);
+  --btn-radius: 0;
+  --btn-shadow: var(--pixel-frame), inset 0 -4px 0 #d08f3a, inset 0 4px 0 #fff0c9;
+  --btn-hover-shadow: var(--pixel-frame), inset 0 -4px 0 #d08f3a, inset 0 4px 0 #ffffff;
+  --btn-press-transform: translateY(4px);
+  --btn2-bg: #333c57;
+  --btn2-border: 0 solid transparent;
+  --btn2-shadow: var(--pixel-frame), inset 0 -4px 0 #1a1c2c;
+  --hero-radius: 0;
+  --hero-border: 0 solid transparent;
+  --hero-shadow: 0 -6px 0 0 #000, 0 6px 0 0 #000, -6px 0 0 0 #000, 6px 0 0 0 #000, 14px 14px 0 0 rgba(0, 0, 0, 0.45);
+  --chip-radius: 0;
+  --scrim: 26, 28, 44;
+  --input-bg: #10111c;
+  --input-border: 0 solid transparent;
+  --focus-ring: 0 0 0 4px #ffcd75;
+  --ease: steps(3, end);
+  --dur: 0.15s;
+}
+html[data-theme="pixel"] :is(.tab-hero-title) { font-size: 34px; line-height: 1.3; }
+html[data-theme="pixel"] :is(.page-title, .detail-page-title) { font-size: 28px; line-height: 1.35; }
+html[data-theme="pixel"] .shelf-block h2 { font-size: 14px; line-height: 1.6; color: #ffcd75; }
+html[data-theme="pixel"] .panel h2 { font-size: 13px; line-height: 1.6; }
+html[data-theme="pixel"] .shelf-block h2::before { content: "▶ "; color: #38b764; }
+html[data-theme="pixel"] .panel h2::before { content: "♥ "; color: #b13e53; }
+html[data-theme="pixel"] .card .card-title { font-family: 'Press Start 2P', monospace; font-size: 11px; line-height: 1.5; text-shadow: 2px 2px 0 #000; }
+html[data-theme="pixel"] .tab-btn { font-size: 21px; letter-spacing: 0.04em; border-left: none; }
+html[data-theme="pixel"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button, .pill, .genre-chip, .format-chip) { font-size: 20px; letter-spacing: 0.06em; }
+html[data-theme="pixel"] :is(.tab-hero-meta, .card .card-meta) { font-family: 'VT323', monospace; font-size: 18px; }
+html[data-theme="pixel"] .card .card-meta { font-size: 15px; }
+html[data-theme="pixel"] .brand h1 { font-family: 'Press Start 2P', monospace; font-size: 13px; }
+html[data-theme="pixel"] :is(.login-card input:not([type="checkbox"]), .stack-form input:not([type="checkbox"]), .stack-form select, .search-input) { box-shadow: var(--pixel-frame); font-family: 'VT323', monospace; font-size: 20px; }
+html[data-theme="pixel"] .player-scrub-fill { background: #38b764; border-radius: 0; }
+html[data-theme="pixel"] .tab-hero-badge { color: #38b764; font-family: 'Press Start 2P', monospace; font-size: 10px; letter-spacing: 0.1em; }
+html[data-theme="pixel"][data-fx="on"] .tab-hero-badge::after { content: "_"; animation: hr-blink 0.8s steps(1) infinite; }
+
+
+/* =====================================================================
+   18. Bauhaus — primary colours, circle/square/triangle, strict grid
+   ===================================================================== */
+[data-theme="bauhaus"] {
+  color-scheme: light;
+  --red: #d7261e;
+  --blue: #1d4fa3;
+  --yellow: #f2b705;
+  --bg: #f2ede3;
+  --bg-2: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f7f3ea;
+  --border: #111111;
+  --border-soft: rgba(17, 17, 17, 0.2);
+  --glass: #ffffff;
+  --glass-strong: rgba(17, 17, 17, 0.86);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    radial-gradient(circle at calc(100% - 120px) 160px, rgba(215, 38, 30, 0.12) 0 90px, transparent 91px),
+    linear-gradient(90deg, transparent calc(100% - 26px), rgba(29, 79, 163, 0.12) calc(100% - 26px)),
+    linear-gradient(#f2ede3, #f2ede3);
+  --text: #111111;
+  --text-secondary: #2a2a2a;
+  --muted: #555149;
+  --faint: #79746a;
+  --dim: #66615a;
+  --disabled: #aaa49a;
+  --accent: #d7261e;
+  --accent-hover: #b51e17;
+  --accent-tint: rgba(215, 38, 30, 0.12);
+  --on-accent: #ffffff;
+  --radius: 0;
+  --radius-sm: 0;
+  --font-display: 'Jost', sans-serif;
+  --font-ui: 'Jost', sans-serif;
+  --font-body: 'Jost', sans-serif;
+  --font-heading: 'Jost', sans-serif;
+  --display-case: lowercase;
+  --display-weight: 700;
+  --display-tracking: -0.03em;
+  --heading-case: lowercase;
+  --chrome-bg: #ffffff;
+  --chrome-blur: none;
+  --chrome-shadow: 2px 0 0 #111;
+  --header-bg: #ffffff;
+  --nav-radius: 0;
+  --nav-active-bg: #f2b705;
+  --nav-active-text: #111;
+  --panel-bg: #ffffff;
+  --panel-blur: none;
+  --panel-border: 2px solid #111;
+  --panel-radius: 0;
+  --panel-shadow: none;
+  --card-radius: 0;
+  --card-border: 2px solid #111;
+  --card-shadow: none;
+  --card-hover-transform: translate(-4px, -4px);
+  --card-hover-border: #111;
+  --card-hover-shadow: 8px 8px 0 var(--blue);
+  --btn-radius: 0;
+  --btn-border: 2px solid #111;
+  --btn-bg-hover: #f2b705;
+  --btn-hover-shadow: none;
+  --btn2-bg: #ffffff;
+  --btn2-text: #111;
+  --btn2-border: 2px solid #111;
+  --hero-radius: 0;
+  --hero-border: 2px solid #111;
+  --hero-shadow: 14px 14px 0 #111;
+  --chip-radius: 0;
+  --scrim: 29, 79, 163;
+  --input-bg: #ffffff;
+  --input-border: 2px solid #111;
+  --focus-ring: 0 0 0 3px #f2b705;
+  --ease: cubic-bezier(0.6, 0, 0.2, 1);
+}
+html[data-theme="bauhaus"] :is(.tab-hero-actions button:not(.secondary), .detail-actions button:not(.secondary), .stack-form button, .login-card button:not(.link-btn)):hover:not(:disabled) { color: #111; }
+html[data-theme="bauhaus"] .card:nth-child(3n+2):hover .card-box { box-shadow: 8px 8px 0 var(--red); }
+html[data-theme="bauhaus"] .card:nth-child(3n):hover .card-box { box-shadow: 8px 8px 0 var(--yellow); }
+html[data-theme="bauhaus"] .card .card-title { text-transform: lowercase; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; }
+html[data-theme="bauhaus"] .tab-hero-title { font-size: 76px; line-height: 0.9; }
+html[data-theme="bauhaus"] .tab-hero-badge { color: var(--yellow); }
+/* Hero: a hard-edged blue field over the art with a red disc on its edge,
+   instead of a soft fade. */
+html[data-theme="bauhaus"] .tab-hero-scrim {
+  background:
+    radial-gradient(circle at 54% 82%, var(--red) 0 64px, transparent 65px),
+    linear-gradient(90deg, rgba(29, 79, 163, 0.96) 0 54%, rgba(29, 79, 163, 0.12) 54%);
+}
+html[data-theme="bauhaus"] .tab-hero::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 54%;
+  width: 0;
+  height: 0;
+  border-left: 70px solid transparent;
+  border-right: 70px solid transparent;
+  border-top: 110px solid var(--yellow);
+  translate: -50% 0;
+  z-index: 1;
+  pointer-events: none;
+}
+@media (max-width: 860px) {
+  html[data-theme="bauhaus"] .tab-hero-scrim { background: linear-gradient(0deg, rgba(29, 79, 163, 0.96) 0 60%, rgba(29, 79, 163, 0.2)); }
+  html[data-theme="bauhaus"] .tab-hero::after { display: none; }
+}
+/* Section heads lead with a shape that cycles circle → square → triangle. */
+html[data-theme="bauhaus"] .shelf-block h2 { font-size: 30px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.02em; }
+html[data-theme="bauhaus"] .shelf-block h2::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  flex: none;
+  background: var(--red);
+  border-radius: 50%;
+}
+html[data-theme="bauhaus"] .shelf-block:nth-of-type(3n+2) h2::before { background: var(--blue); border-radius: 0; }
+html[data-theme="bauhaus"] .shelf-block:nth-of-type(3n) h2::before { background: var(--yellow); border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+html[data-theme="bauhaus"] .panel { border-top: 10px solid var(--blue); }
+html[data-theme="bauhaus"] .panel:nth-of-type(3n+2) { border-top-color: var(--red); }
+html[data-theme="bauhaus"] .panel:nth-of-type(3n) { border-top-color: var(--yellow); }
+html[data-theme="bauhaus"] .panel h2 { font-size: 26px; }
+html[data-theme="bauhaus"] .tab-btn { color: #111; text-transform: lowercase; font-weight: 500; border-left: none; }
+html[data-theme="bauhaus"] .nav-profile-initial { background: var(--red); color: #fff; border-radius: 50%; }
+
+
+/* =====================================================================
+   19. Art Deco — gold on black lacquer, fans, stepped frames, symmetry
+   ===================================================================== */
+[data-theme="deco"] {
+  color-scheme: dark;
+  --gold: #d4af37;
+  --gold-leaf: linear-gradient(180deg, #f8eac0 0%, #e2c160 30%, #b8912a 55%, #f0d67f 80%, #c9a23a 100%);
+  --bg: #0b0b0d;
+  --bg-2: rgba(0, 0, 0, 0.5);
+  --surface: rgba(212, 175, 55, 0.06);
+  --surface-hover: rgba(212, 175, 55, 0.13);
+  --border: rgba(212, 175, 55, 0.45);
+  --border-soft: rgba(212, 175, 55, 0.18);
+  --glass: linear-gradient(180deg, #19181c, #121114);
+  --glass-strong: rgba(11, 11, 13, 0.9);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop:
+    repeating-conic-gradient(from -90deg at 50% 115%, rgba(212, 175, 55, 0.07) 0 2deg, transparent 2deg 9deg),
+    radial-gradient(900px 500px at 50% 110%, rgba(212, 175, 55, 0.12), transparent 70%),
+    linear-gradient(180deg, #0e0d10, #0b0b0d);
+  --text: #f3e5ab;
+  --text-secondary: #e2d4a0;
+  --muted: #b0a274;
+  --faint: #807552;
+  --dim: #988b60;
+  --accent: #d4af37;
+  --accent-hover: #f0d67f;
+  --accent-tint: rgba(212, 175, 55, 0.14);
+  --on-accent: #1a1405;
+  --radius: 0;
+  --radius-sm: 0;
+  --font-display: 'Poiret One', sans-serif;
+  --font-ui: 'Jost', sans-serif;
+  --font-body: 'Jost', sans-serif;
+  --font-heading: 'Poiret One', sans-serif;
+  --display-tracking: 0.14em;
+  --chrome-bg: linear-gradient(180deg, #141316, #0d0c0f);
+  --chrome-blur: none;
+  --chrome-shadow: inset -1px 0 0 rgba(212, 175, 55, 0.45), inset -5px 0 0 #0b0b0d, inset -6px 0 0 rgba(212, 175, 55, 0.25);
+  --header-bg: #0d0c0f;
+  --nav-radius: 0;
+  --nav-active-bg: linear-gradient(90deg, rgba(212, 175, 55, 0.22), transparent);
+  --nav-active-text: #f8eac0;
+  --panel-bg: linear-gradient(180deg, #19181c, #121114);
+  --panel-blur: none;
+  --panel-border: 1px solid rgba(212, 175, 55, 0.7);
+  --panel-radius: 0;
+  --panel-shadow: inset 0 0 0 5px #121114, inset 0 0 0 6px rgba(212, 175, 55, 0.35), 0 18px 40px rgba(0, 0, 0, 0.5);
+  --card-radius: 0;
+  --card-border: 1px solid rgba(212, 175, 55, 0.7);
+  --card-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
+  --card-hover-transform: translateY(-4px);
+  --card-hover-border: #f0d67f;
+  --card-hover-shadow: 0 18px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(212, 175, 55, 0.25);
+  --btn-bg: var(--gold-leaf);
+  --btn-bg-hover: linear-gradient(180deg, #fff6d8 0%, #f0d67f 35%, #c9a23a 60%, #f8eac0 100%);
+  --btn-text: #1a1405;
+  --btn-radius: 0;
+  --btn-border: 1px solid #f8eac0;
+  --btn-shadow: 0 0 0 3px #0b0b0d, 0 0 0 4px rgba(212, 175, 55, 0.6);
+  --btn2-bg: transparent;
+  --btn2-text: #f3e5ab;
+  --btn2-border: 1px solid rgba(212, 175, 55, 0.8);
+  --hero-radius: 0;
+  --hero-border: 1px solid rgba(212, 175, 55, 0.7);
+  --hero-shadow: 0 0 0 6px #0b0b0d, 0 0 0 7px rgba(212, 175, 55, 0.4), 0 30px 60px rgba(0, 0, 0, 0.6);
+  --chip-radius: 0;
+  --scrim: 11, 11, 13;
+  --on-art: #f8eac0;
+  --on-art-2: rgba(243, 229, 171, 0.85);
+  --input-border: 1px solid rgba(212, 175, 55, 0.55);
+  --focus-ring: 0 0 0 1px #f0d67f, 0 0 0 4px rgba(212, 175, 55, 0.25);
+}
+html[data-theme="deco"] :is(.tab-hero-title, .detail-page-title, .page-title) {
+  background: var(--gold-leaf);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+html[data-theme="deco"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button, .pill, .tab-btn) { letter-spacing: 0.22em; text-transform: uppercase; font-weight: 500; }
+html[data-theme="deco"] .tab-btn { font-size: 13px; border-left: none; }
+/* A stepped-corner frame inside each tile, over the art. */
+html[data-theme="deco"] .card-box::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  z-index: 1;
+  pointer-events: none;
+  border: 1px solid rgba(240, 214, 127, 0.55);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, calc(100% - 10px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 10px, 100% 10px, 100% calc(100% - 10px), calc(100% - 4px) calc(100% - 10px), calc(100% - 4px) calc(100% - 4px), calc(100% - 10px) calc(100% - 4px), calc(100% - 10px) 100%, 10px 100%, 10px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 10px), 0 calc(100% - 10px), 0 10px, 4px 10px, 4px 4px, 10px 4px);
+}
+html[data-theme="deco"] .card .card-title { font-family: 'Poiret One', sans-serif; font-weight: 400; font-size: 18px; letter-spacing: 0.12em; color: #f8eac0; }
+/* Section heads centred between gold rules with a diamond. */
+html[data-theme="deco"] .shelf-block h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 24px;
+  letter-spacing: 0.3em;
+  color: #f0d67f;
+}
+html[data-theme="deco"] .shelf-block h2::before,
+html[data-theme="deco"] .shelf-block h2::after {
+  content: "";
+  flex: 1;
+  max-width: 320px;
+  height: 7px;
+  background:
+    linear-gradient(#d4af37, #d4af37) 0 0 / 100% 1px no-repeat,
+    linear-gradient(#d4af37, #d4af37) 0 100% / 100% 1px no-repeat;
+}
+html[data-theme="deco"] .shelf-sub { text-align: center; letter-spacing: 0.12em; }
+html[data-theme="deco"] .panel h2 { font-size: 24px; letter-spacing: 0.24em; color: #f0d67f; text-align: center; }
+html[data-theme="deco"] .panel h2::after { content: "◆"; display: block; font-size: 10px; margin-top: 6px; color: #d4af37; }
+/* Symmetry: the hero's text stack centres on the frame. */
+html[data-theme="deco"] .tab-hero-scrim { background: radial-gradient(ellipse at 50% 60%, rgba(11, 11, 13, 0.55), rgba(11, 11, 13, 0.92) 75%); }
+html[data-theme="deco"] .tab-hero-body { margin: 0 auto; align-items: center; text-align: center; }
+html[data-theme="deco"] .tab-hero-meta { justify-content: center; letter-spacing: 0.3em; }
+html[data-theme="deco"] .tab-hero-synopsis { margin-left: auto; margin-right: auto; }
+html[data-theme="deco"] .tab-hero-actions { justify-content: center; }
+html[data-theme="deco"] .tab-hero-poster { display: none; }
+html[data-theme="deco"] .tab-hero-title { font-size: 60px; line-height: 1.05; }
+html[data-theme="deco"] .tab-hero-badge { letter-spacing: 0.5em; }
+html[data-theme="deco"] .tab-hero-badge::before { content: "◆  "; }
+html[data-theme="deco"] .tab-hero-badge::after { content: "  ◆"; }
+
+
+/* =====================================================================
+   20. Neo-Brutalism — thick borders, hard offset shadows, loud fills
+   ===================================================================== */
+[data-theme="brutal"] {
+  color-scheme: light;
+  --bg: #fff4d6;
+  --bg-2: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #ffe9a8;
+  --border: #000000;
+  --border-soft: rgba(0, 0, 0, 0.25);
+  --glass: #ffffff;
+  --glass-strong: rgba(0, 0, 0, 0.88);
+  --glass-blur: none;
+  --glass-edge: none;
+  --glass-shadow: none;
+  --backdrop: linear-gradient(#fff4d6, #fff4d6);
+  --text: #000000;
+  --text-secondary: #1c1c1c;
+  --muted: #4a4a4a;
+  --faint: #6a6a6a;
+  --dim: #555555;
+  --disabled: #a0a0a0;
+  --accent: #ff5c8a;
+  --accent-hover: #ff3b73;
+  --accent-tint: rgba(255, 92, 138, 0.18);
+  --on-accent: #000000;
+  --radius: 0;
+  --radius-sm: 0;
+  --font-display: 'Archivo Black', sans-serif;
+  --font-ui: 'Space Grotesk', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-heading: 'Archivo Black', sans-serif;
+  --font-mono: 'Space Grotesk', sans-serif;
+  --display-tracking: -0.02em;
+  --chrome-bg: #ffffff;
+  --chrome-blur: none;
+  --chrome-shadow: 3px 0 0 #000;
+  --header-bg: #ffffff;
+  --nav-radius: 0;
+  --nav-active-bg: #b8ff5e;
+  --nav-active-text: #000;
+  --nav-active-shadow: inset 0 0 0 3px #000, 4px 4px 0 #000;
+  --panel-bg: #ffffff;
+  --panel-blur: none;
+  --panel-border: 3px solid #000;
+  --panel-radius: 0;
+  --panel-shadow: 8px 8px 0 #000;
+  --card-radius: 0;
+  --card-border: 3px solid #000;
+  --card-shadow: 6px 6px 0 #000;
+  --card-hover-transform: translate(-3px, -3px);
+  --card-hover-border: #000;
+  --card-hover-shadow: 10px 10px 0 #000;
+  --btn-radius: 0;
+  --btn-border: 3px solid #000;
+  --btn-shadow: 4px 4px 0 #000;
+  --btn-hover-shadow: 6px 6px 0 #000;
+  --btn-hover-transform: translate(-2px, -2px);
+  --btn-press-transform: translate(4px, 4px);
+  --btn2-bg: #4d7cff;
+  --btn2-text: #ffffff;
+  --btn2-border: 3px solid #000;
+  --btn2-shadow: 4px 4px 0 #000;
+  --hero-radius: 0;
+  --hero-border: 3px solid #000;
+  --hero-shadow: 12px 12px 0 #000;
+  --chip-radius: 0;
+  --scrim: 0, 0, 0;
+  --input-bg: #ffffff;
+  --input-border: 3px solid #000;
+  --focus-ring: 4px 4px 0 #000;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 0.12s;
+}
+html[data-theme="brutal"] :is(.tab-hero-actions button, .detail-actions button):active { box-shadow: 0 0 0 #000; }
+html[data-theme="brutal"] .tab-hero-title { font-size: 74px; line-height: 0.92; }
+html[data-theme="brutal"] .card .card-title { font-size: 18px; letter-spacing: -0.01em; }
+html[data-theme="brutal"] .card:nth-child(4n+2):hover .card-box { box-shadow: 10px 10px 0 #4d7cff; }
+html[data-theme="brutal"] .card:nth-child(4n+3):hover .card-box { box-shadow: 10px 10px 0 #ff5c8a; }
+html[data-theme="brutal"] .card:nth-child(4n):hover .card-box { box-shadow: 10px 10px 0 #b8ff5e; }
+/* Section heads as solid label stickers, colours rotating. */
+html[data-theme="brutal"] .shelf-block h2 {
+  display: inline-block;
+  font-size: 24px;
+  padding: 6px 14px;
+  background: #ffd23f;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  margin-bottom: 14px;
+}
+html[data-theme="brutal"] .shelf-block:nth-of-type(4n+2) h2 { background: #b8ff5e; }
+html[data-theme="brutal"] .shelf-block:nth-of-type(4n+3) h2 { background: #7ad7ff; }
+html[data-theme="brutal"] .shelf-block:nth-of-type(4n) h2 { background: #ff9ecb; }
+html[data-theme="brutal"] .panel h2 { font-size: 24px; }
+html[data-theme="brutal"] .tab-btn { color: #000; font-weight: 700; border-left: none; }
+html[data-theme="brutal"] :is(.genre-chip, .format-chip, .search-pill) { border: 2px solid #000; box-shadow: 3px 3px 0 #000; background: #fff; color: #000; }
+html[data-theme="brutal"] .tab-hero-badge { display: inline-block; align-self: flex-start; background: #b8ff5e; color: #000; padding: 4px 10px; border: 3px solid #000; }
+html[data-theme="brutal"] .nav-profile-initial { background: #ff5c8a; color: #000; border: 3px solid #000; border-radius: 0; }
+
+
+/* ---------- Reduced motion ----------
+   themes.js already keeps data-fx="off" (so none of the gated animations
+   above run) under prefers-reduced-motion; this also flattens the hover and
+   press transitions every theme has, which are not gated. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme] *,
+  html[data-theme] *::before,
+  html[data-theme] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+html[data-fx="off"] .theme-fx { display: none; }
+
+
+/* ---------- Settings: the theme gallery ----------
+   Each tile is a miniature of its theme drawn from that theme's own tokens:
+   .theme-preview carries data-theme, so the token block for that id (written
+   without an html prefix above) applies inside it and nowhere else. */
+/* The gallery needs the whole row, not one column of the settings grid. */
+#themePanel { grid-column: 1 / -1; }
+
+.theme-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  margin: 0 0 18px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.theme-controls label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.theme-controls input { accent-color: var(--accent); width: 16px; height: 16px; }
+.theme-controls .field-note { margin: 0; }
+
+.theme-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 16px;
+}
+.theme-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.theme-preview {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  height: 118px;
+  padding: 10px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--backdrop), var(--bg);
+  color: var(--text);
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.35);
+  transition: outline-color 0.15s, transform 0.2s;
+}
+.theme-tile:hover .theme-preview { transform: translateY(-2px); }
+.theme-tile:focus-visible { outline: none; }
+.theme-tile:focus-visible .theme-preview,
+.theme-tile[aria-pressed="true"] .theme-preview { outline-color: var(--accent); }
+.tp-rail {
+  border-radius: min(var(--card-radius, 6px), 6px);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.tp-rail::before {
+  content: "";
+  display: block;
+  height: 10px;
+  margin: 8px 5px 0;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.tp-main { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.tp-title {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight, 400);
+  text-transform: var(--display-case, uppercase);
+  font-size: 19px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.tp-cards { display: flex; gap: 7px; flex: 1; min-height: 0; }
+.tp-cards i {
+  flex: 1;
+  border: var(--card-border, 1px solid var(--border));
+  border-width: 2px;
+  border-radius: min(var(--card-radius, 8px), 8px);
+  box-shadow: var(--card-shadow);
+  background: linear-gradient(160deg, var(--tp-a, #444), var(--tp-b, #222));
+}
+.tp-cards i:nth-child(1) { --tp-a: #e9765b; --tp-b: #6b2440; }
+.tp-cards i:nth-child(2) { --tp-a: #5fb2c9; --tp-b: #1d3557; }
+.tp-cards i:nth-child(3) { --tp-a: #e8c46a; --tp-b: #5a3d16; }
+.tp-btn {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--btn-bg, var(--accent));
+  color: var(--btn-text, var(--on-accent));
+  border: var(--btn-border, 0 solid transparent);
+  border-width: 2px;
+  border-radius: min(var(--btn-radius, 8px), 999px);
+}
+.theme-name { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.theme-name .theme-current {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.theme-tagline { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.theme-household { color: var(--muted); font-size: 12px; }
+
+
+/* ---------- Phones ----------
+   Several themes set bigger display sizes than the house style; at phone
+   width those beat style.css's own 760px step-down, so cap them again here
+   (appended last, same specificity as the per-theme rules, so this wins).
+   The header's action buttons get tighter too — wider faces (Jost, Bangers)
+   and thicker borders otherwise push Sign out off the edge. */
+@media (max-width: 760px) {
+  html[data-theme]:not([data-theme="default"]) .tab-hero-title { font-size: 44px; line-height: 0.95; }
+  html[data-theme]:not([data-theme="default"]) :is(.page-title, .detail-page-title) { font-size: 38px; }
+  html[data-theme="pixel"] .tab-hero-title { font-size: 24px; line-height: 1.35; }
+  html[data-theme="pixel"] :is(.page-title, .detail-page-title) { font-size: 20px; line-height: 1.4; }
+  html[data-theme]:not([data-theme="default"]) :is(#scanBtn, #checkBtn, #logoutBtn) {
+    padding: 6px 8px;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+  }
+  html[data-theme]:not([data-theme="default"]) header { gap: 8px; padding-left: 12px; padding-right: 12px; }
+}

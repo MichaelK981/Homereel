@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeReel</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='27' fill='none' stroke='%2300C2A8' stroke-width='5'/%3E%3Ccircle cx='32' cy='15' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='17.3' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='46.7' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Cpath d='M27 23.5 L44 32 L27 40.5 Z' fill='%2300C2A8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/themes.css">
+<!-- Sets data-theme on <html> before first paint; see the note at its top. -->
+<script src="/themes.js"></script>
+
+<!-- Installed to the home screen, this runs with no browser chrome at all.
+     iOS reads the apple-* tags rather than the manifest for that, and will not
+     take an SVG for the icon, so the PNGs above are not redundant with the
+     favicon. status-bar-style "black" rather than "black-translucent": the
+     translucent one puts the page under the notch and every screen would need
+     safe-area padding to match. -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#14171b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="HomeReel">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="brand" id="brandHome" role="button" tabindex="0" aria-label="Go to Home">
+        <svg class="logo logo-sm" viewBox="0 0 64 64" role="img" aria-label="HomeReel">
+        <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="4"/>
+        <circle cx="32" cy="15" r="4.5" fill="currentColor"/>
+        <circle cx="17.3" cy="40.5" r="4.5" fill="currentColor"/>
+        <circle cx="46.7" cy="40.5" r="4.5" fill="currentColor"/>
+        <path d="M27 23.5 L44 32 L27 40.5 Z" fill="currentColor"/>
+      </svg>
+        <h1>HomeReel</h1>
+      </div>
+      <button id="sidebarToggle" class="sidebar-toggle" title="Collapse sidebar" aria-label="Collapse sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m15 6-6 6 6 6"/>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="tabs">
+        <button class="tab-btn" data-tab="home" title="Home">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h3.5v-6h3v6H17a1 1 0 0 0 1-1V10"/></svg>
+          <span class="nav-label">Home</span>
+        </button>
+        <button class="tab-btn" data-tab="browse" title="Browse">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span class="nav-label">Browse</span>
+        </button>
+        <!-- One entry per mapped library, built by app.js from /api/auth/me —
+             Settings can map new ones, so this cannot be static markup. -->
+        <div class="nav-libraries" id="libraryTabs"></div>
+        <button class="tab-btn" data-tab="search" title="Search">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <span class="nav-label">Search</span>
+        </button>
+        <button class="tab-btn" data-tab="mylist" title="My List">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+          <span class="nav-label">My List</span>
+        </button>
+        <!-- Admin-only; loadAccount() unhides it. Hidden here so a viewer
+             never sees it flash on the way in. -->
+        <button class="tab-btn" data-tab="watching" id="liveTab" title="Live" hidden>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.5"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 15.5a5 5 0 0 0 0-7"/><path d="M5.8 5.8a9 9 0 0 0 0 12.4M18.2 18.2a9 9 0 0 0 0-12.4"/></svg>
+          <span class="nav-label">Live</span>
+        </button>
+        <button class="tab-btn" data-tab="settings" title="Settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h8M17 6h3M4 12h3M12 12h8M4 18h8M17 18h3"/><circle cx="14.5" cy="6" r="2"/><circle cx="9.5" cy="12" r="2"/><circle cx="14.5" cy="18" r="2"/></svg>
+          <span class="nav-label">Settings</span>
+        </button>
+    </nav>
+
+    <!-- Populated by loadAccount(); pinned to the bottom of the rail / the
+         right of the top bar via CSS, not markup order. -->
+    <div class="nav-profile-chip" id="navProfileChip" title="Switch profile">
+      <div class="nav-profile-initial" id="navProfileInitial"></div>
+      <div>
+        <div class="nav-profile-name" id="navProfileName"></div>
+        <div class="nav-profile-switch">switch</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header>
+      <!-- Admin-only; loadAccount() unhides it. Hidden here so a viewer never
+           sees it flash on the way in. -->
+      <button id="checkBtn" hidden>Check for Changes</button>
+      <button id="scanBtn" hidden>Rescan Library</button>
+      <div class="account">
+        <span class="who" id="whoami"></span>
+        <button id="logoutBtn">Sign out</button>
+      </div>
+    </header>
+
+  <main>
+
+    <section id="home" class="tab-panel">
+      <div id="hero-home" class="tab-hero-slot"></div>
+      <div id="shelves-home"></div>
+    </section>
+
+    <section id="browse" class="tab-panel">
+      <!-- Every accessible library at once, filterable by genre. Chips are
+           built from /api/discover's own genre list, which always covers
+           everything the account can see regardless of which chip is picked. -->
+      <h2 class="page-title">Browse</h2>
+      <p class="page-sub" id="browseCount"></p>
+      <div class="genre-chips" id="genreChips"></div>
+      <div class="grid grid-catalog" id="browseGrid"></div>
+    </section>
+
+    <!-- One hero + four shelves per library, id "lib-<name>", built alongside the nav. -->
+    <div id="libraryPanels"></div>
+
+    <section id="mylist" class="tab-panel">
+      <div class="grid" id="mylistGrid"></div>
+    </section>
+
+    <section id="collections" class="tab-panel">
+      <div class="grid" id="collectionsGrid"></div>
+    </section>
+
+    <section id="collection" class="tab-panel">
+      <button id="backToCollections">&larr; Back</button>
+      <h2 id="collectionTitle"></h2>
+      <div class="grid" id="collectionGrid"></div>
+    </section>
+
+    <section id="shows" class="tab-panel">
+      <div class="grid" id="showsGrid"></div>
+    </section>
+
+    <section id="anime" class="tab-panel">
+      <div class="grid" id="animeGrid"></div>
+    </section>
+
+    <section id="watching" class="tab-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Live</h2>
+          <p class="panel-sub" id="watchingSub">Who is playing something right now.</p>
+        </div>
+        <span class="live-dot" id="liveDot" title="Refreshing every 5 seconds"></span>
+      </div>
+      <div id="watchingList"></div>
+    </section>
+
+    <section id="settings" class="tab-panel">
+      <div class="settings">
+        <section class="panel">
+          <h2>Your account</h2>
+          <p class="panel-sub" id="accountSummary"></p>
+          <form id="passwordForm" class="stack-form">
+            <label for="currentPassword">Current password</label>
+            <input id="currentPassword" type="password" autocomplete="current-password" required>
+            <label for="newPassword">New password</label>
+            <input id="newPassword" type="password" autocomplete="new-password" required>
+            <label for="confirmPassword">Confirm new password</label>
+            <input id="confirmPassword" type="password" autocomplete="new-password" required>
+            <button type="submit">Change password</button>
+            <div class="form-msg" id="passwordMsg"></div>
+          </form>
+        </section>
+
+        <section class="panel" id="twoFactorPanel">
+          <h2>Two-factor authentication</h2>
+          <p class="panel-sub">Every HomeReel account signs in with a password and a
+             6-digit code from an authenticator app. Set up a new authenticator when
+             you change phone &mdash; the old one keeps working until the new one is
+             confirmed.</p>
+
+          <div class="twofa-status">
+            <span class="pill pill-ok">On</span>
+            <span class="muted-cell" id="twoFactorSummary"></span>
+          </div>
+
+          <div class="twofa-actions" id="twoFactorActions">
+            <button type="button" id="moveAuthBtn">Set up a new authenticator</button>
+            <button type="button" id="newCodesBtn">Generate new backup codes</button>
+          </div>
+
+          <!-- Both actions hand the second factor around, so both ask for the
+               password again rather than trusting the open session alone. -->
+          <form id="twoFactorPasswordForm" class="stack-form" hidden>
+            <label for="twoFactorPassword">Confirm your password</label>
+            <input id="twoFactorPassword" type="password" autocomplete="current-password" required>
+            <button type="submit">Continue</button>
+            <button type="button" class="link-btn" id="twoFactorCancel">Cancel</button>
+            <div class="form-msg" id="twoFactorMsg"></div>
+          </form>
+
+          <form id="twoFactorSetupForm" class="stack-form" hidden>
+            <p class="field-note">Scan this with the authenticator app on the new phone,
+               then type the code it shows.</p>
+            <div class="qr-frame" id="twoFactorQr"></div>
+            <p class="field-note">Can't scan it? Enter this key by hand:</p>
+            <code class="secret-key" id="twoFactorSecret"></code>
+            <label for="twoFactorCode">Code from the app</label>
+            <input id="twoFactorCode" type="text" inputmode="numeric" maxlength="7"
+                   autocomplete="one-time-code" placeholder="000000" class="code-input" required>
+            <button type="submit">Confirm</button>
+            <button type="button" class="link-btn" id="twoFactorSetupCancel">Cancel</button>
+            <div class="form-msg" id="twoFactorSetupMsg"></div>
+          </form>
+
+          <div id="twoFactorCodes" hidden>
+            <p class="field-note">Each code signs you in once if you lose your phone.
+               <strong>This is the only time they are shown</strong> &mdash; the server keeps
+               hashes, not the codes.</p>
+            <pre class="backup-codes" id="twoFactorCodeList"></pre>
+            <div class="backup-actions">
+              <button type="button" id="twoFactorCopy">Copy</button>
+              <a id="twoFactorDownload" download="homereel-backup-codes.txt" class="link-btn">Download</a>
+              <button type="button" class="link-btn" id="twoFactorCodesDone">Done</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="appsPanel" hidden>
+          <h2>Get the apps</h2>
+          <p class="panel-sub">HomeReel for Android phones and tablets, and for Android TV
+             and Google TV. Sign in with the same account you use here.</p>
+          <a class="panel-link" id="appsLink" href="#" target="_blank" rel="noopener">Open the downloads page</a>
+        </section>
+
+        <section class="panel" id="themePanel">
+          <h2>Theme</h2>
+          <p class="panel-sub">Just for this profile &mdash; everyone else keeps their own.
+             Pick one to switch straight away.</p>
+          <div class="theme-controls">
+            <label><input type="checkbox" id="themeFollowHousehold">
+              Use the household theme <span class="theme-household" id="themeHouseholdName"></span></label>
+            <label><input type="checkbox" id="themeEffects"> Motion effects on this device</label>
+            <p class="field-note" id="themeMotionNote" hidden>Your system asks for reduced motion,
+               so animated effects stay off.</p>
+          </div>
+          <div class="theme-gallery" id="themeGallery" role="group" aria-label="Themes"></div>
+          <div class="form-msg" id="themeMsg"></div>
+        </section>
+
+        <section class="panel" id="appearancePanel" hidden>
+          <h2>Appearance</h2>
+          <p class="panel-sub">Applies for everyone in the household, not just this account.</p>
+          <form id="appearanceForm" class="stack-form">
+            <label for="householdThemeSelect">Household theme</label>
+            <select id="householdThemeSelect"></select>
+            <p class="field-note">The theme for the sign-in page and for any profile that
+               hasn't picked its own.</p>
+            <label for="navModeSelect">Navigation</label>
+            <select id="navModeSelect">
+              <option value="rail">Rail &mdash; left sidebar</option>
+              <option value="top">Top &mdash; sticky bar</option>
+            </select>
+            <label for="posterStyleSelect">Poster style</label>
+            <select id="posterStyleSelect">
+              <option value="portrait">Portrait &mdash; 2:3 posters</option>
+              <option value="still">Still &mdash; landscape stills</option>
+            </select>
+            <button type="submit">Save</button>
+            <div class="form-msg" id="appearanceMsg"></div>
+          </form>
+        </section>
+
+        <section class="panel" id="librariesPanel" hidden>
+          <h2>Libraries</h2>
+          <p class="panel-sub">Folders HomeReel indexes. Paths are as the container sees
+             them &mdash; a folder has to be mounted by the compose file before it can be
+             mapped here.</p>
+          <table class="user-table">
+            <thead>
+              <tr><th>Library</th><th>Path</th><th>Type</th><th>Items</th><th></th></tr>
+            </thead>
+            <tbody id="libraryRows"></tbody>
+          </table>
+
+          <h3>Map a library</h3>
+          <form id="addLibraryForm" class="stack-form">
+            <label>Pick the folder</label>
+            <!-- Browsing beats typing: what is listed here is exactly what the
+                 compose mounted, so an unmountable path cannot be chosen. -->
+            <div class="browser">
+              <div class="browser-bar">
+                <button type="button" id="browseUp" class="browser-up" title="Up one level">&uarr;</button>
+                <code class="browser-path" id="browserPath">/</code>
+              </div>
+              <div class="browser-list" id="browserList"></div>
+            </div>
+            <p class="field-note" id="browserHint">
+              Only folders mounted into the container appear here. To add one, put it in the
+              compose file as a volume and redeploy, then it shows up in this list.
+            </p>
+
+            <label for="newLibraryLabel">Name</label>
+            <input id="newLibraryLabel" type="text" autocomplete="off" required
+                   placeholder="Documentaries">
+            <label for="newLibraryKind">Layout</label>
+            <select id="newLibraryKind">
+              <option value="show">Shows &mdash; Show / Season / Episode folders</option>
+              <option value="movie">Movies &mdash; one folder or file per title</option>
+            </select>
+            <input id="newLibraryPath" type="hidden">
+            <button type="submit" id="addLibraryBtn" disabled>Map library</button>
+            <div class="form-msg" id="addLibraryMsg"></div>
+          </form>
+        </section>
+
+        <section class="panel" id="usersPanel" hidden>
+          <h2>Users</h2>
+          <p class="panel-sub">Viewers see only the libraries you tick. Admins can also manage
+             users, and always have access to every library. Everyone has to enrol an
+             authenticator app &mdash; reset it here if someone loses their phone and their
+             backup codes.</p>
+          <table class="user-table">
+            <thead>
+              <tr><th>Username</th><th>Role</th><th>Library access</th><th>Two-factor</th><th>Created</th><th></th></tr>
+            </thead>
+            <tbody id="userRows"></tbody>
+          </table>
+
+          <h3>Add a user</h3>
+          <form id="addUserForm" class="stack-form">
+            <label for="newUsername">Username</label>
+            <input id="newUsername" type="text" autocomplete="off" required>
+            <label for="newUserPassword">Password</label>
+            <input id="newUserPassword" type="password" autocomplete="new-password" required
+                   minlength="8" placeholder="At least 8 characters">
+            <label for="newUserRole">Role</label>
+            <select id="newUserRole">
+              <option value="viewer">Viewer</option>
+              <option value="admin">Admin</option>
+            </select>
+            <label>Library access</label>
+            <!-- Checkboxes are rendered from the mapped libraries, which change. -->
+            <div class="lib-choices" id="newUserLibraries"></div>
+            <p class="field-note" id="newUserLibrariesNote">
+              Only the ticked libraries appear in their sidebar.
+            </p>
+            <p class="field-note">They set up two-factor authentication themselves the
+               first time they sign in, with this password.</p>
+            <button type="submit">Add user</button>
+            <div class="form-msg" id="addUserMsg"></div>
+          </form>
+        </section>
+      </div>
+    </section>
+
+    <section id="search" class="tab-panel">
+      <input id="searchInput" class="search-input" type="text" autocomplete="off"
+             placeholder="Search films, series, anime, people">
+      <!-- Genre names, reusing /api/discover's own list — clicking one searches
+           for it directly. -->
+      <div class="search-pills" id="searchPills"></div>
+      <p class="page-sub" id="searchCount"></p>
+      <div class="grid grid-catalog" id="searchGrid"></div>
+    </section>
+
+    <section id="detail" class="tab-panel">
+      <div class="detail-backdrop" id="detailBackdrop">
+        <div class="detail-backdrop-stripes"></div>
+        <div class="detail-backdrop-scrim"></div>
+        <button type="button" id="detailBack" class="detail-back">&#8617; Back</button>
+      </div>
+      <div class="detail-layout">
+        <div class="detail-poster-col">
+          <div class="detail-poster" id="detailPosterFrame">
+            <img class="detail-poster-img" id="detailPosterImg" alt="" onerror="this.remove()">
+          </div>
+        </div>
+        <div class="detail-main">
+          <div class="detail-kind" id="detailKind"></div>
+          <h1 class="detail-page-title" id="detailPageTitle"></h1>
+          <div class="detail-meta-row" id="detailMetaRow"></div>
+          <p class="detail-synopsis" id="detailSynopsis"></p>
+          <div class="detail-actions" id="detailActions"></div>
+          <div id="detailEpisodes"></div>
+          <div id="detailCast"></div>
+          <div id="detailSimilar"></div>
+        </div>
+        <div class="detail-side">
+          <div class="detail-fact-panel" id="detailFacts"></div>
+          <div class="detail-fact-panel" id="detailFormats"></div>
+        </div>
+      </div>
+    </section>
+    </main>
+  </div>
+
+  <div id="playerModal" class="player hidden">
+    <div class="player-video-area" id="playerVideoArea">
+      <video id="videoPlayer" autoplay playsinline webkit-playsinline></video>
+      <div class="player-stripes"></div>
+      <div class="player-vignette"></div>
+      <div class="player-center">
+        <div class="player-annotation" id="playerAnnotation"></div>
+        <div class="player-play-glyph" id="playerPlayGlyph" hidden>&#9654;</div>
+      </div>
+      <div class="player-topbar">
+        <button type="button" id="closePlayer" class="player-back">&#8617; Back</button>
+        <div class="player-heading">
+          <div class="player-title" id="playerTitle"></div>
+          <div class="player-subtitle" id="playerSubtitle"></div>
+        </div>
+      </div>
+      <!-- Series/Anime only, and only near the start of an episode — see
+           updateSkipIntroVisibility() in app.js. -->
+      <button type="button" id="skipIntroBtn" class="skip-intro-btn" hidden>Skip Intro</button>
+    </div>
+
+    <div class="player-controls">
+      <!-- Shown only when playback picked up where it left off, so resuming is
+           something you can see and undo rather than a surprise. -->
+      <div id="resumeNotice" class="resume-notice" hidden>
+        <span id="resumeNoticeText"></span>
+        <button type="button" id="restartBtn">Start from the beginning</button>
+      </div>
+
+      <div class="player-scrub" id="playerScrub">
+        <div class="player-scrub-buffered" id="playerBuffered"></div>
+        <div class="player-scrub-fill" id="playerFill"></div>
+        <div class="player-scrub-knob" id="playerKnob"></div>
+      </div>
+
+      <div class="player-bar">
+        <button type="button" id="playPauseBtn" class="player-icon-btn" title="Play/Pause"></button>
+        <button type="button" id="back10Btn" class="player-step-btn">&minus;10s</button>
+        <button type="button" id="fwd10Btn" class="player-step-btn">+10s</button>
+        <div class="player-time"><span id="playerTime">0:00</span><span class="dim"> / <span id="playerTotal">0:00</span></span></div>
+        <div class="player-volume">
+          <span class="vol-label">VOL</span>
+          <input type="range" id="volumeSlider" min="0" max="100" value="100">
+        </div>
+        <div class="player-chips">
+          <div class="player-chip" id="audioChip" hidden>
+            Audio
+            <div class="player-chip-menu" id="audioMenu" hidden></div>
+          </div>
+          <div class="player-chip" id="subsChip" hidden>
+            Subtitles
+            <div class="player-chip-menu" id="subsMenu" hidden></div>
+          </div>
+          <div class="player-chip" id="qualityChip">
+            <span id="qualityChipLabel">Direct Play</span>
+            <div class="player-chip-menu" id="qualityMenu" hidden>
+              <div class="option active" data-mode="direct">Direct Play</div>
+              <div class="option" data-mode="1080p">1080p</div>
+              <div class="option" data-mode="720p">720p</div>
+              <div class="option" data-mode="480p">480p</div>
+            </div>
+          </div>
+          <div class="player-chip" id="fullscreenChip">Full screen</div>
+        </div>
+      </div>
+      <div id="transcodeStatus" class="transcode-status"></div>
+
+      <!-- Shown only for an episode, once its place in the show is known. -->
+      <div id="episodeNav" class="episode-nav-strip" hidden>
+        <span class="next-up-label">Next up</span>
+        <span class="next-up-title" id="nextUpTitle"></span>
+        <div class="episode-nav-buttons">
+          <button type="button" id="prevEpisodeBtn" disabled>&lsaquo; Previous</button>
+          <button type="button" id="nextEpisodeBtn" disabled>Next &rsaquo;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/hls.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

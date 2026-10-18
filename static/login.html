@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — HomeReel</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='27' fill='none' stroke='%2300C2A8' stroke-width='5'/%3E%3Ccircle cx='32' cy='15' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='17.3' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='46.7' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Cpath d='M27 23.5 L44 32 L27 40.5 Z' fill='%2300C2A8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/themes.css">
+<!-- Sets data-theme on <html> before first paint; see the note at its top. -->
+<script src="/themes.js"></script>
+
+<!-- Installed to the home screen, this runs with no browser chrome at all.
+     iOS reads the apple-* tags rather than the manifest for that, and will not
+     take an SVG for the icon, so the PNGs above are not redundant with the
+     favicon. status-bar-style "black" rather than "black-translucent": the
+     translucent one puts the page under the notch and every screen would need
+     safe-area padding to match. -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#14171b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="HomeReel">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="login-body">
+  <!-- Left: the pitch. Purely decorative — nothing here is interactive, so it
+       is skipped below the responsive breakpoint rather than squeezed. -->
+  <div class="login-visual">
+    <div class="login-visual-stripes" aria-hidden="true"></div>
+    <div class="login-visual-inner">
+      <div class="login-mark">
+        <svg class="logo logo-sm" viewBox="0 0 64 64" role="img" aria-label="HomeReel">
+          <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="4"/>
+          <circle cx="32" cy="15" r="4.5" fill="currentColor"/>
+          <circle cx="17.3" cy="40.5" r="4.5" fill="currentColor"/>
+          <circle cx="46.7" cy="40.5" r="4.5" fill="currentColor"/>
+          <path d="M27 23.5 L44 32 L27 40.5 Z" fill="currentColor"/>
+        </svg>
+        <span>HomeReel</span>
+      </div>
+      <div class="login-pitch">
+        <div class="login-eyebrow">Movies &middot; Series &middot; Anime</div>
+        <h1>Everything you watch, one reel</h1>
+        <p>One library for feature films, long-running series and the anime
+           you keep meaning to finish. Picks up where you left off, on any
+           screen in the house.</p>
+      </div>
+      <!-- Filled from /api/public/stats — a real count, not a placeholder,
+           and left blank rather than guessed at if that fetch fails. -->
+      <div class="login-stat" id="loginStat"></div>
+    </div>
+  </div>
+
+  <div class="login-form-panel">
+    <div class="login-card">
+      <!-- Step 1 — password. -->
+      <form id="loginForm" class="login-step" autocomplete="on">
+        <h2 class="login-heading">Sign in</h2>
+        <p class="login-sub">Welcome back. Sign in to continue.</p>
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit" id="loginBtn">Sign in</button>
+        <div id="loginError" class="login-error"></div>
+      </form>
+
+      <!-- Step 2 — the code, for an account that has already enrolled. -->
+      <form id="codeForm" class="login-step" hidden autocomplete="off">
+        <p class="login-sub">Enter the 6-digit code from your authenticator app</p>
+        <label for="code">Code</label>
+        <!-- inputmode numeric, but not type=number: a backup code goes in the
+             same box, and leading zeros matter in the six-digit one. -->
+        <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+               maxlength="14" placeholder="000000" class="code-input" required>
+        <p class="field-note">Lost your phone? Type one of your backup codes instead.</p>
+        <button type="submit" id="codeBtn">Verify</button>
+        <button type="button" class="link-btn" id="codeBack">Back</button>
+        <div id="codeError" class="login-error"></div>
+      </form>
+
+      <!-- Step 3 — first-time enrolment. -->
+      <form id="setupForm" class="login-step" hidden autocomplete="off">
+        <p class="login-sub">Set up two-factor authentication</p>
+        <p class="field-note">HomeReel asks for a 6-digit code as well as your password.
+           Scan this with Google Authenticator, Aegis, 1Password, Bitwarden or any other
+           authenticator app, then type the code it shows.</p>
+        <div class="qr-frame" id="qrFrame"></div>
+        <p class="field-note">Can't scan it? Enter this key by hand:</p>
+        <code class="secret-key" id="setupSecret"></code>
+        <label for="setupCode">Code from the app</label>
+        <input id="setupCode" type="text" inputmode="numeric" autocomplete="one-time-code"
+               maxlength="7" placeholder="000000" class="code-input" required>
+        <button type="submit" id="setupBtn">Confirm and sign in</button>
+        <button type="button" class="link-btn" id="setupBack">Back</button>
+        <div id="setupError" class="login-error"></div>
+      </form>
+
+      <!-- Step 4 — the backup codes, shown once and only here. -->
+      <div id="backupStep" class="login-step" hidden>
+        <p class="login-sub">Save your backup codes</p>
+        <p class="field-note">Each one signs you in once if you lose your phone.
+           <strong>This is the only time they are shown.</strong> Keep them somewhere
+           that is not the phone the app is on.</p>
+        <pre class="backup-codes" id="backupCodes"></pre>
+        <div class="backup-actions">
+          <button type="button" id="copyCodes">Copy</button>
+          <a id="downloadCodes" download="homereel-backup-codes.txt" class="link-btn">Download</a>
+        </div>
+        <label class="confirm-line">
+          <input type="checkbox" id="savedCodes"> I have saved these codes
+        </label>
+        <button type="button" id="backupDone" disabled>Continue to HomeReel</button>
+      </div>
+      <!-- Shown only when the server has a DOWNLOADS_URL. In the card rather
+           than the pitch column, which is hidden on a phone — the one place
+           this link is most wanted. -->
+      <a class="login-apps" id="loginApps" target="_blank" rel="noopener" hidden>Get the Android &amp; TV apps &rarr;</a>
+    </div>
+  </div>
+
+<script>
+// Purely cosmetic, and never worth blocking sign-in over.
+fetch("/api/public/stats").then((r) => r.json()).then(({ items, libraries, downloads_url, theme }) => {
+  // A browser that has signed in before already drew this page in its last
+  // theme (themes.js); one that never has gets the household's.
+  if (theme && window.HomeReelThemes && !HomeReelThemes.cached()) {
+    HomeReelThemes.apply(theme, { persist: false });
+  }
+  if (downloads_url) {
+    const apps = document.getElementById("loginApps");
+    apps.href = downloads_url;
+    apps.hidden = false;
+  }
+  document.getElementById("loginStat").textContent =
+    `${items.toLocaleString()} TITLES · ${libraries} ${libraries === 1 ? "LIBRARY" : "LIBRARIES"} · NO ADS`;
+}).catch(() => {});
+
+const steps = {
+  login: document.getElementById("loginForm"),
+  totp: document.getElementById("codeForm"),
+  enroll: document.getElementById("setupForm"),
+  backup: document.getElementById("backupStep"),
+};
+
+function show(name) {
+  for (const [key, element] of Object.entries(steps)) element.hidden = key !== name;
+  const focus = steps[name].querySelector("input:not([type=checkbox])");
+  if (focus) focus.focus();
+}
+
+// Full navigation rather than history.replaceState, so the app boots with the
+// session cookie already in place.
+const enterApp = () => { window.location.href = "/profiles"; };
+
+async function post(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const payload = await res.json().catch(() => ({}));
+  return { ok: res.ok, payload };
+}
+
+// Every step is the same shape: disable, call, either advance or show why not.
+function wire(form, button, errorEl, busyLabel, handler) {
+  const label = button.textContent;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorEl.textContent = "";
+    button.disabled = true;
+    button.textContent = busyLabel;
+    try {
+      await handler();
+    } catch (err) {
+      errorEl.textContent = "Could not reach the server";
+    }
+    button.disabled = false;
+    button.textContent = label;
+  });
+}
+
+// ---- step 1: password ----
+const loginError = document.getElementById("loginError");
+wire(steps.login, document.getElementById("loginBtn"), loginError, "Signing in...", async () => {
+  const { ok, payload } = await post("/api/auth/login", {
+    username: document.getElementById("username").value,
+    password: document.getElementById("password").value,
+  });
+  document.getElementById("password").value = "";
+  if (!ok) {
+    loginError.textContent = payload.detail || "Sign in failed";
+    return;
+  }
+  if (payload.next === "enroll") {
+    await loadEnrolment();
+  } else {
+    show("totp");
+  }
+});
+
+// ---- step 2: the code ----
+const codeError = document.getElementById("codeError");
+wire(steps.totp, document.getElementById("codeBtn"), codeError, "Checking...", async () => {
+  const { ok, payload } = await post("/api/auth/verify", {
+    code: document.getElementById("code").value,
+  });
+  if (!ok) {
+    codeError.textContent = payload.detail || "That code is not right";
+    document.getElementById("code").select();
+    return;
+  }
+  enterApp();
+});
+
+// ---- step 3: enrolment ----
+const setupError = document.getElementById("setupError");
+
+async function loadEnrolment() {
+  const res = await fetch("/api/auth/setup");
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    loginError.textContent = payload.detail || "Could not start the setup";
+    show("login");
+    return;
+  }
+  // Server-rendered SVG from our own endpoint, not anything a user supplied.
+  document.getElementById("qrFrame").innerHTML = payload.qr;
+  document.getElementById("setupSecret").textContent = payload.secret;
+  show("enroll");
+}
+
+wire(steps.enroll, document.getElementById("setupBtn"), setupError, "Confirming...", async () => {
+  const { ok, payload } = await post("/api/auth/setup", {
+    code: document.getElementById("setupCode").value,
+  });
+  if (!ok) {
+    setupError.textContent = payload.detail || "That code is not right";
+    document.getElementById("setupCode").select();
+    return;
+  }
+  showBackupCodes(payload.backup_codes);
+});
+
+// ---- step 4: backup codes ----
+function showBackupCodes(codes) {
+  const text = codes.join("\n");
+  document.getElementById("backupCodes").textContent = text;
+  document.getElementById("downloadCodes").href =
+    "data:text/plain;charset=utf-8," + encodeURIComponent(
+      "HomeReel backup codes\nEach code works once.\n\n" + text + "\n");
+  show("backup");
+}
+
+document.getElementById("copyCodes").addEventListener("click", async (event) => {
+  const text = document.getElementById("backupCodes").textContent;
+  // navigator.clipboard needs a secure context and this is usually plain http
+  // on the LAN, so the old execCommand path is the one that actually runs.
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (err) {
+    const scratch = document.createElement("textarea");
+    scratch.value = text;
+    document.body.appendChild(scratch);
+    scratch.select();
+    document.execCommand("copy");
+    scratch.remove();
+  }
+  event.target.textContent = "Copied";
+  setTimeout(() => { event.target.textContent = "Copy"; }, 1500);
+});
+
+document.getElementById("savedCodes").addEventListener("change", (event) => {
+  document.getElementById("backupDone").disabled = !event.target.checked;
+});
+document.getElementById("backupDone").addEventListener("click", enterApp);
+
+// Going back abandons the half-finished sign-in rather than leaving it live.
+for (const id of ["codeBack", "setupBack"]) {
+  document.getElementById(id).addEventListener("click", async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    document.getElementById("code").value = "";
+    document.getElementById("setupCode").value = "";
+    show("login");
+  });
+}
+</script>
+</body>
+</html>

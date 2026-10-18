@@ -1,0 +1,488 @@
+================================================================================
+                         HOMEREEL - SETUP GUIDE
+                    Covers 1.29 - last revised 2026-08-20
+
+  Getting HomeReel running: what it needs, how to lay the media out, how to
+  start it, how to get through the first sign-in, and what to do when a fresh
+  install misbehaves. It lives in the source tree at docs/guide.txt, which is
+  the only copy - everything published is generated from it.
+
+  Everything past setup - the tour of the UI, scanning, artwork, transcoding
+  behaviour, the REST API, known limitations - lives in the project README.
+================================================================================
+
+
+--------------------------------------------------------------------------------
+CONTENTS
+--------------------------------------------------------------------------------
+
+  1.  Requirements
+  2.  Expected folder layout
+  3.  Setup, step by step
+  4.  Environment variable reference
+  5.  Wiring up Radarr / Sonarr
+  6.  GPU transcoding: host setup
+  7.  If setup did not work
+
+
+--------------------------------------------------------------------------------
+1.  REQUIREMENTS
+--------------------------------------------------------------------------------
+
+  * Docker with Docker Compose.
+  * Your media, reachable by the container as bind mounts.
+  * A writable cache location (index, cached artwork, transcode scratch).
+  * Optional: Radarr and/or Sonarr, for posters, ratings, collections and
+    episode banners.
+  * Optional: an NVIDIA GPU plus the NVIDIA Container Toolkit on the host, for
+    hardware transcoding. Without it, set ENCODER=cpu.
+  * Outbound internet access from the container, if you want episode banners:
+    Sonarr does not keep local copies of episode screenshots, so HomeReel pulls
+    them from TVDB's CDN (artworks.thetvdb.com). Posters do not need this.
+  * Transcode playback in Chrome/Firefox loads hls.js from a CDN
+    (cdnjs.cloudflare.com). Direct Play needs no internet; Safari plays HLS
+    natively.
+
+
+--------------------------------------------------------------------------------
+2.  EXPECTED FOLDER LAYOUT
+--------------------------------------------------------------------------------
+
+Movies want a (Year) in the filename. Series and Anime use the same
+Show/Season/Episode shape - Anime is simply a separate library, not a different
+layout.
+
+  Movies/
+    Inception (2010)/
+      Inception (2010).mkv
+
+  Series/
+    Breaking Bad/
+      Season 01/
+        Breaking Bad S01E01.mkv
+
+  Anime/
+    Attack on Titan/
+      Season 01/
+        Attack on Titan S01E01.mkv
+
+The scanner is forgiving about everything else: it only needs a (Year)
+somewhere in a movie filename and an SxxEyy pattern somewhere in an episode
+filename. Video extensions recognised: .mkv .mp4 .avi .mov .m4v .webm
+
+Note for absolute-numbered anime: "Season NN" folders alone do nothing. The
+SxxEyy has to be in the FILENAME or the episode lands with no season/episode
+numbers (it still indexes and plays; it just sorts and labels poorly, and its
+banner then has to match by path rather than by numbering).
+
+
+--------------------------------------------------------------------------------
+3.  SETUP, STEP BY STEP
+--------------------------------------------------------------------------------
+
+3.1  Get the image
+-------------------
+Either pull the published image:
+
+    docker pull michaelk98/homereel:latest
+
+or build from source:
+
+    cd /path/to/homereel
+    docker build -t homereel:1.29 .
+
+The published image carries a sanitised copy of the compose file. To extract it:
+
+    docker create --name tmp michaelk98/homereel:latest
+    docker cp tmp:/srv/docker-compose.yml .
+    docker rm tmp
+
+
+3.2  Write docker-compose.yml
+------------------------------
+    services:
+      homereel:
+        image: homereel:1.29
+        container_name: homereel
+        ports:
+          - "8200:8000"           # container always listens on 8000
+        volumes:
+          - /path/to/Movies:/movies
+          - /path/to/Series:/series
+          - /path/to/Anime:/anime
+          - /path/to/Cache:/cache
+          # Extra libraries must be mounted before they can be mapped in the UI:
+          # - /path/to/Documentaries:/documentaries
+        environment:
+          - MOVIES_PATH=/movies
+          - SERIES_PATH=/series
+          - ANIME_PATH=/anime
+          - DB_PATH=/cache/library.db
+          - POSTER_DIR=/cache/posters
+          - TRANSCODE_DIR=/cache/transcode
+          - TZ=Etc/UTC
+          - SCAN_INTERVAL=300
+          - ENCODER=nvenc         # "cpu" for libx264
+          - RADARR_URL=http://radarr:7878
+          - RADARR_API_KEY=...
+          - SONARR_URL=http://sonarr:8989
+          - SONARR_API_KEY=...
+          - SONARR_ANIME_URL=http://sonarr-anime:8989
+          - SONARR_ANIME_API_KEY=...
+          - NVIDIA_VISIBLE_DEVICES=all
+          - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+        deploy:
+          resources:
+            reservations:
+              devices:
+                - driver: nvidia
+                  count: 1
+                  capabilities: [gpu]
+        restart: unless-stopped
+
+Two things that bite people:
+
+  * NVIDIA_DRIVER_CAPABILITIES must include "video". With only "compute,utility"
+    the NVENC encoder library is not injected, nvidia-smi still works fine, and
+    transcodes silently fall back to CPU. Do NOT use "all" inside an LXC
+    container - it pulls in display capabilities that need device nodes an LXC
+    usually has not been given, and the container will fail to start.
+  * The *arr keys are optional. Without them HomeReel runs perfectly well and
+    simply has no artwork, ratings, collections or episode banners.
+
+
+3.3  Start it
+--------------
+    docker compose up -d
+
+On first start it creates the SQLite index, seeds the three built-in libraries
+from MOVIES_PATH / SERIES_PATH / ANIME_PATH, walks every library (full scan,
+because the index is empty), then kicks off an artwork sync in the background.
+The UI is usable immediately; artwork fills in behind you.
+
+The first artwork sync of a large library downloads one image per matched title
+plus one per episode. Expect a few thousand requests and 100 MB or so of cache
+on a big library. It only happens once - after that, only new files are fetched.
+
+
+3.4  Make the first account
+----------------------------
+There is no sign-up page, and nothing is generated for you. Make the first
+admin from the host:
+
+    docker exec homereel python3 -c \
+      "from app import auth; auth.create_user('YourName', 'a-good-password', 'admin')"
+
+That is the only account that has to be made this way. More accounts, and who
+sees which library, are done in the app under Settings > Users once you are in.
+
+A password is all you set here. The second factor is not something an admin
+holds on someone else's behalf - each person enrols their own at their first
+sign-in, which is the next step.
+
+
+3.5  First sign-in: enrol two-factor
+-------------------------------------
+Open http://<server-ip>:8200/ (or whatever host port you published) and sign in.
+
+EVERY ACCOUNT MUST ENROL AN AUTHENTICATOR. There is no opt-out and no per-user
+setting. A correct password on its own gets you the enrolment screen and
+nothing else - not the library, not a stream, not the API.
+
+What you will see, once, per account:
+
+  1. Scan the QR with any authenticator app - Google Authenticator, Aegis,
+     Raivo, 1Password, Bitwarden, a hardware token that speaks TOTP. If you
+     cannot scan it, the same secret is printed below the code as a key to
+     type in by hand.
+  2. Type the 6-digit code the app shows, to prove it took the secret.
+  3. Write down the ten backup codes it then gives you. See 3.6 - this is the
+     only time they are shown.
+
+From then on, signing in is password, then code. Codes are standard TOTP:
+HMAC-SHA1, 6 digits, a new one every 30 seconds. One step of clock drift either
+side is accepted, so a phone up to half a minute out is fine; further out than
+that, fix the phone's clock.
+
+A code cannot be used twice. The counter each account last spent is stored and
+anything at or below it is refused, so a code read over your shoulder is dead
+for the rest of the 30 seconds it would otherwise still be live.
+
+Sessions are server-side rows in SQLite, handed out as an httponly cookie
+lasting SESSION_DAYS (default 30). Signing out revokes the session immediately
+rather than waiting for expiry. The half-finished sign-in between the password
+and the code is a different, much shorter-lived cookie - it expires after
+PENDING_LOGIN_MINUTES (default 10) and can do nothing but finish that sign-in.
+
+Five failed logins for the same username+IP lock that pair out for 60 seconds.
+Wrong codes count towards the same five.
+
+
+3.6  Backup codes, and getting back in
+---------------------------------------
+Enrolling issues ten backup codes. Each works once, typed into the same box the
+6-digit code goes in; case, spaces and dashes are ignored. Only a hash of each
+is stored, so THEY CANNOT BE SHOWN AGAIN - a set closed without being saved can
+only be replaced, from Settings > Two-factor > Generate new backup codes.
+
+Keep them somewhere that is not the phone the authenticator is on. A drawer
+beats a password manager that is itself behind the same phone.
+
+Three ways back in, in the order you want to need them:
+
+  * A backup code, at the ordinary sign-in prompt.
+  * Any admin: Settings > Users > Reset, on that person's row. It signs them
+    out everywhere, voids their backup codes, and puts them back on the
+    enrolment screen at their next sign-in with the password they already have.
+  * If the only admin is locked out entirely - phone gone, codes gone - from
+    the host, which no cookie or code can gate:
+
+        docker exec -w /srv homereel python3 -c \
+          "from app import auth; auth.reset_two_factor('YourName')"
+
+Changing phone does not need any of that: Settings > Two-factor > Set up a new
+authenticator asks for your password, then hands over a fresh QR. The old
+authenticator keeps working until the new one is confirmed, so an abandoned
+setup strands nobody.
+
+
+3.7  Install it on a phone
+---------------------------
+HomeReel installs to a phone's home screen as a web app - own icon, own name,
+no browser chrome. There is nothing to sideload and nothing to sign, and it
+never expires.
+
+  iPhone / iPad: open HomeReel in Safari, tap Share, then "Add to Home Screen".
+  It must be Safari - Chrome on iOS cannot install web apps.
+
+  Android: open it in Chrome, then menu > "Add to Home screen" / "Install app".
+
+What you get is the full app: browsing, search, resume, watched marks, the
+player. Video plays inline, and AirPlay and Picture-in-Picture work because the
+player is the platform's own.
+
+Two things to know on iOS:
+
+  * Direct Play of a .mkv can never work - Safari supports no Matroska at all,
+    whatever codecs are inside it. The player switches to a transcode by
+    itself when that happens, and any of the quality buttons does it manually.
+  * There are no offline downloads. This is a streaming client; the media stays
+    on the server.
+
+A native, sideloaded iOS app would need a Mac to build and sign - Xcode is
+macOS-only - plus either weekly re-signing with a free Apple ID or an Apple
+Developer Program membership for a year-long profile. The home-screen install
+avoids all of it.
+
+
+--------------------------------------------------------------------------------
+4.  ENVIRONMENT VARIABLE REFERENCE
+--------------------------------------------------------------------------------
+
+  MOVIES_PATH        /movies      Seeds the built-in Movies library on first run
+  SERIES_PATH        /series      Seeds the built-in Series library
+  ANIME_PATH         /anime       Seeds the built-in Anime library
+                                  (After first run, library paths live in the
+                                   database - changing these does not move an
+                                   existing library.)
+  DB_PATH            /cache/library.db     SQLite index
+  POSTER_DIR         /cache/posters        Cached posters and episode banners
+  TRANSCODE_DIR      /cache/transcode      HLS scratch space
+  SCAN_INTERVAL      300          Seconds between background change scans;
+                                  0 disables the watcher entirely
+  ENCODER            nvenc        "nvenc" (h264_nvenc) or "cpu" (libx264)
+  WATCHED_PERCENT    85           How much of a title must be played before it
+                                  gets a check mark, as a percentage
+  DOWNLOADS_URL      (unset)      Address of a page hosting the Android and TV
+                                  app builds. When set, Settings and the sign-in
+                                  card link to it. Must start with http:// or
+                                  https://
+  RESUME_MIN_SECONDS 30           How far in playback has to get before the
+                                  position is worth keeping. Under this, a title
+                                  neither resumes nor joins Continue Watching -
+                                  it was opened, not started
+  RESUME_FINISHED_PERCENT  95     Past this a title counts as finished and
+                                  starts over next time rather than resuming
+  WATCHING_TIMEOUT   90           Seconds of silence before the admin Live view
+                                  forgets a viewing. It has to cover the gap a
+                                  paused player leaves
+  SESSION_DAYS       30           Session cookie lifetime
+  PENDING_LOGIN_MINUTES  10       How long a sign-in may sit between the
+                                  password and the 6-digit code before it has
+                                  to start over. There is no setting that turns
+                                  two-factor off
+  TRUST_PROXY        unset        Set only when a reverse proxy in front sets
+                                  X-Forwarded-For. Without it that header is
+                                  ignored, because otherwise any client can
+                                  choose the address the Live view shows for it
+  TZ                 Etc/UTC      Container timezone
+  RADARR_URL / RADARR_API_KEY               Movies: posters, ratings, collections
+  SONARR_URL / SONARR_API_KEY               Series: posters, ratings, banners
+  SONARR_ANIME_URL / SONARR_ANIME_API_KEY   Anime: same, second instance
+  RADARR_ANIME_URL / RADARR_ANIME_API_KEY   Films in another library: second Radarr
+  RADARR_ANIME_PATH_MAP     <radarr path>:<homereel path>, e.g. /movies:/animemovies
+                            - only when that Radarr mounts the folder elsewhere
+  NVIDIA_VISIBLE_DEVICES / NVIDIA_DRIVER_CAPABILITIES   GPU passthrough
+
+
+--------------------------------------------------------------------------------
+5.  WIRING UP RADARR / SONARR
+--------------------------------------------------------------------------------
+
+THE ONE RULE: titles are joined BY PATH. Radarr/Sonarr must mount your libraries
+at the same paths HomeReel does.
+
+If Sonarr sees a show as /series/Breaking Bad and HomeReel sees it as
+/tv/Breaking Bad, nothing matches: no poster, no rating, no episode banners.
+There is no title/year guessing and no fuzzy matching anywhere in HomeReel -
+that is deliberate, and it is why the join is exact when the paths line up.
+
+What each source provides:
+
+  Radarr  (movies)  poster, overview, runtime, genres, IMDb/TMDb rating and
+                    vote count, and the TMDB collection a film belongs to
+                    (which is where the Collections view comes from)
+  Sonarr  (series)  show poster, overview, runtime, genres, rating, and one
+                    screenshot per episode
+  Sonarr  (anime)   the same, from a second instance
+
+A title neither of them manages simply gets no artwork - unless you supply it
+yourself. A poster.jpg (or poster.png, folder.jpg, cover.jpg) in the title's own
+folder always wins, and so does an image named after an episode's video file
+(MyShow.S01E01.jpg, or MyShow.S01E01-thumb.jpg beside MyShow.S01E01.mkv). The
+README goes into how artwork resolves in full.
+
+
+--------------------------------------------------------------------------------
+6.  GPU TRANSCODING: HOST SETUP
+--------------------------------------------------------------------------------
+Only needed if you set ENCODER=nvenc. Skip the lot with ENCODER=cpu, which
+encodes with libx264 and needs nothing on the host.
+
+The image already has an ffmpeg with NVENC compiled in; what it needs at runtime
+is the driver's libnvidia-encode.so, injected by the NVIDIA Container Toolkit.
+No CUDA toolkit goes in the image.
+
+  1. Install the toolkit on the host (Debian/Ubuntu):
+
+        curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+          | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+        curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+          | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+          | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+        sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+        sudo nvidia-ctk runtime configure --runtime=docker
+        sudo systemctl restart docker
+
+  2. Leave the deploy.resources.reservations block in the compose file as it is.
+     It requests the GPU and works with plain Compose - no swarm mode.
+
+  3. Keep NVIDIA_DRIVER_CAPABILITIES at compute,video,utility. Without "video"
+     there is no encoder library in the container, nvidia-smi still works, and
+     transcodes quietly fall back to the CPU. Do not use "all" inside an LXC:
+     it pulls in display capabilities that need device nodes an LXC has not
+     usually been given, and the container will not start.
+
+Confirm it took:
+
+    docker exec homereel ffmpeg -hide_banner -encoders | grep nvenc
+
+A card also has its own ceiling. Consumer Pascal parts (a GTX 1050 Ti, say) do
+H.264 encode only - no HEVC - and the driver caps them at a small number of
+concurrent NVENC sessions, typically two or three. Past that transcodes fail
+rather than degrade, which is a hardware limit and not something to configure
+around.
+
+
+--------------------------------------------------------------------------------
+7.  IF SETUP DID NOT WORK
+--------------------------------------------------------------------------------
+Everything here is about a fresh install not coming up right. Once it is
+running, the README covers the rest.
+
+No posters or banners at all, anywhere
+  Check RADARR_URL/SONARR_URL are reachable FROM THE CONTAINER and that the
+  keys are right - a URL that works in your browser may not resolve inside
+  Docker. Test it from in there:
+      docker exec homereel python3 -c \
+        "import urllib.request as u; print(u.urlopen('http://radarr:7878', timeout=5).status)"
+
+A show or film has no artwork while everything else does
+  It is not managed by Radarr/Sonarr at that exact path. Artwork is joined by
+  path and nothing else, so the *arrs must mount the libraries at the same
+  paths HomeReel does (section 5). Dropping a poster.jpg in the title's folder
+  is the manual way out.
+
+Posters work but episode banners do not
+  The container cannot reach artworks.thetvdb.com, where Sonarr's episode
+  screenshots actually live. Test it:
+      docker exec homereel python3 -c \
+        "import urllib.request as u; print(u.urlopen(
+         'https://artworks.thetvdb.com', timeout=10).status)"
+
+A library folder is not in the picker
+  It is not bind-mounted. HomeReel only sees what the compose file mounts: add
+  the volume, restart the container, then map it in Settings.
+
+A library indexes nothing
+  Check the filenames rather than the folders - a film needs a (Year) and an
+  episode needs SxxEyy in the FILENAME (section 2). Then run a full rescan,
+  which re-parses every file, rather than the change check.
+
+Transcode fails immediately
+  The error carries the tail of ffmpeg's own log. "Cannot load libcuda.so.1"
+  or an NVENC line means the GPU passthrough is not right - see section 6, or
+  set ENCODER=cpu to confirm the rest of the pipeline works.
+
+Transcode fails with "No capable devices found" but nvidia-smi works
+  Not a GPU problem, despite the wording. h264_nvenc cannot encode 10-bit, and
+  that is what it says when handed a 10-bit frame. HomeReel forces 8-bit
+  (format=yuv420p) for exactly this reason, so seeing it means you are running
+  a build from before that fix, or a modified ffmpeg command. Check whether the
+  source is 10-bit with:
+      docker exec homereel ffprobe -v error -select_streams v:0 \
+        -show_entries stream=codec_name,pix_fmt -of default=noprint_wrappers=1 \
+        "/anime/Some Show/S01E01.mkv"
+  A pix_fmt of yuv420p10le is a 10-bit source.
+
+A title plays on a laptop but not on an iPhone or iPad
+  Safari supports no Matroska at all, whatever is inside it - so .mkv can never
+  Direct Play on iOS, even when the codecs themselves are fine. Use one of the
+  quality buttons, which transcodes to HLS that Safari plays natively. The
+  player also switches over by itself when Direct Play fails.
+
+Locked out after failed logins
+  Five failures for the same username and IP lock that pair out for 60
+  seconds. Wrong 6-digit codes count towards the same five. Wait it out.
+
+Forgotten the admin password
+  Reset it from the host:
+      docker exec homereel python3 -c \
+        "from app import auth; auth.set_password('YourName', 'new-password')"
+
+The authenticator is gone and so are the backup codes
+  Un-enrol the account from the host; the next sign-in is the enrolment screen
+  again, using the password that account already has:
+      docker exec -w /srv homereel python3 -c \
+        "from app import auth; auth.reset_two_factor('YourName')"
+  Any admin can do the same for anyone else from Settings > Users > Reset,
+  without a shell.
+
+The authenticator's codes are never accepted
+  Almost always the phone's clock. One 30-second step of drift either side is
+  allowed and no more. Turn on automatic date and time on the phone. Note that
+  the SERVER's clock matters just as much - check it with
+      docker exec homereel date -u
+  and compare it against a known-good source.
+
+Everyone was signed out after an upgrade
+  Expected, once. Turning two-factor on empties the session table, because
+  every cookie in it was issued against a password alone. Sign in again and
+  enrol; it does not repeat.
+
+Signing in says the sign-in timed out
+  The gap between the password and the code ran past PENDING_LOGIN_MINUTES
+  (default 10). Start the sign-in again.
+
+
+================================================================================

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Who's watching? — HomeReel</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='27' fill='none' stroke='%2300C2A8' stroke-width='5'/%3E%3Ccircle cx='32' cy='15' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='17.3' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='46.7' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Cpath d='M27 23.5 L44 32 L27 40.5 Z' fill='%2300C2A8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/themes.css">
+<!-- Sets data-theme on <html> before first paint; see the note at its top. -->
+<script src="/themes.js"></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#14171b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="HomeReel">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="profiles-body">
+  <div class="profiles-mark">
+    <svg width="22" height="22" viewBox="0 0 64 64" role="img" aria-label="HomeReel">
+      <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="4"/>
+      <circle cx="32" cy="15" r="4.5" fill="currentColor"/>
+      <circle cx="17.3" cy="40.5" r="4.5" fill="currentColor"/>
+      <circle cx="46.7" cy="40.5" r="4.5" fill="currentColor"/>
+      <path d="M27 23.5 L44 32 L27 40.5 Z" fill="currentColor"/>
+    </svg>
+    <span>HomeReel</span>
+  </div>
+
+  <h2 class="profiles-heading">Who's watching?</h2>
+
+  <div class="profiles-row" id="profilesRow"></div>
+
+  <!-- Hidden until "+ Add" is clicked. A native prompt() would clash with the
+       rest of this page, so this is a small inline form instead. -->
+  <form class="profiles-add-form" id="addForm" hidden>
+    <input id="addName" type="text" placeholder="Name" maxlength="20" autocomplete="off" required>
+    <button type="submit">Add profile</button>
+    <button type="button" class="link-btn" id="addCancel">Cancel</button>
+    <div class="login-error" id="addError"></div>
+  </form>
+
+  <button type="button" class="profiles-manage" id="manageBtn">Manage profiles</button>
+
+<script>
+// This page only ever needs a session, never a profile — the missing-profile
+// 401 that app.js's api() handles specially can't happen against these routes.
+async function api(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    window.location.href = "/login";
+    throw new Error("not signed in");
+  }
+  return res;
+}
+
+const esc = (value) =>
+  String(value).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  );
+
+// Same placeholder-art idea as the rest of HomeReel's cards: a hue derived
+// from the name, not a random or explicitly-chosen color, so a profile's tile
+// stays the same shade every time it's shown.
+function hueFrom(str) {
+  let h = 0;
+  for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return h;
+}
+function tileColors(name) {
+  const h = hueFrom(name);
+  const h2 = (h + 34) % 360;
+  return {
+    bg: `linear-gradient(155deg, hsl(${h} 46% 22%), hsl(${h2} 40% 11%)), `
+      + `repeating-linear-gradient(112deg, rgba(255,255,255,.05) 0 2px, transparent 2px 12px)`,
+    border: `hsl(${h} 50% 42%)`,
+    fg: `hsl(${h} 70% 74%)`,
+  };
+}
+
+// "ADDED 3 DAYS AGO" — created_at is a SQLite UTC timestamp, "YYYY-MM-DD HH:MM:SS".
+function relTime(sqlDatetime) {
+  const then = new Date(sqlDatetime.replace(" ", "T") + "Z");
+  const days = Math.floor((Date.now() - then.getTime()) / 86400000);
+  if (days <= 0) return "ADDED TODAY";
+  if (days === 1) return "ADDED YESTERDAY";
+  if (days < 30) return `ADDED ${days} DAYS AGO`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `ADDED ${months} ${months === 1 ? "MONTH" : "MONTHS"} AGO`;
+  const years = Math.floor(months / 12);
+  return `ADDED ${years} ${years === 1 ? "YEAR" : "YEARS"} AGO`;
+}
+
+let profiles = [];
+let manageMode = false;
+
+async function loadProfiles() {
+  const res = await api("/api/profiles");
+  profiles = await res.json();
+  render();
+}
+
+function render() {
+  const tiles = profiles.map((p) => {
+    const colors = tileColors(p.name);
+    const initial = esc((p.name.trim().charAt(0) || "?").toUpperCase());
+    const avatarStyle =
+      `background: ${colors.bg}; border-color: ${colors.border}; color: ${colors.fg}`;
+    if (manageMode) {
+      return `
+        <div class="profile-tile">
+          <div class="profile-avatar" style="${avatarStyle}">
+            ${initial}
+            <button type="button" class="profile-delete" title="Remove profile"
+                    onclick="removeProfile(${p.id})">&times;</button>
+          </div>
+          <input class="profile-name-edit" value="${esc(p.name)}" maxlength="20"
+                 onkeydown="if (event.key === 'Enter') this.blur()"
+                 onblur="renameProfile(${p.id}, this.value)">
+          <div class="profile-note">${relTime(p.created_at)}</div>
+        </div>`;
+    }
+    return `
+      <div class="profile-tile" onclick="selectProfile(${p.id})">
+        <div class="profile-avatar" style="${avatarStyle}">${initial}</div>
+        <div class="profile-name">${esc(p.name)}</div>
+        <div class="profile-note">${relTime(p.created_at)}</div>
+      </div>`;
+  });
+
+  tiles.push(`
+    <div class="profile-tile add-tile" onclick="showAddForm()">
+      <div class="profile-avatar profile-avatar-add">+</div>
+      <div class="profile-name">Add profile</div>
+      <div class="profile-note">&nbsp;</div>
+    </div>`);
+
+  document.getElementById("profilesRow").innerHTML = tiles.join("");
+}
+
+async function selectProfile(id) {
+  const res = await api("/api/profiles/select", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  if (res.ok) window.location.href = "/";
+}
+
+async function renameProfile(id, value) {
+  const name = value.trim();
+  const current = profiles.find((p) => p.id === id);
+  // Nothing typed, or nothing changed — put the label back rather than firing
+  // a request that would only echo the same name back.
+  if (!current || !name || name === current.name) {
+    render();
+    return;
+  }
+  const res = await api(`/api/profiles/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (res.ok) await loadProfiles();
+  else render();       // failed — the field reverts to the server's own value
+}
+
+async function removeProfile(id) {
+  if (!confirm(
+    "Remove this profile? Its My List and watch history stay on the server, " +
+    "but this tile goes away."
+  )) return;
+  const res = await api(`/api/profiles/${id}`, { method: "DELETE" });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    alert(payload.detail || "Could not remove that profile");
+    return;
+  }
+  await loadProfiles();
+}
+
+const addForm = document.getElementById("addForm");
+const addName = document.getElementById("addName");
+const addError = document.getElementById("addError");
+
+function showAddForm() {
+  addForm.hidden = false;
+  addName.focus();
+}
+function hideAddForm() {
+  addForm.hidden = true;
+  addName.value = "";
+  addError.textContent = "";
+}
+document.getElementById("addCancel").onclick = hideAddForm;
+
+addForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  addError.textContent = "";
+  const res = await api("/api/profiles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: addName.value.trim() }),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    addError.textContent = payload.detail || "Could not add that profile";
+    return;
+  }
+  hideAddForm();
+  await loadProfiles();
+});
+
+document.getElementById("manageBtn").onclick = (event) => {
+  manageMode = !manageMode;
+  event.target.textContent = manageMode ? "Done" : "Manage profiles";
+  hideAddForm();
+  render();
+};
+
+loadProfiles();
+</script>
+</body>
+</html>

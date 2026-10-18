@@ -1,0 +1,2621 @@
+/* Palette and type from a Claude Design export applied 2026-08-23: near-black
+   base, a single teal accent (surfaces went translucent in 1.87 — see the
+   Glassmorphism section at the end of this file), and cinema-poster type (Anton for display,
+   Barlow Condensed for UI chrome, IBM Plex Mono for meta text) in place of
+   the old MediaProx purple. Names are HomeReel's own, so every existing rule
+   picks the new values up untouched. */
+:root {
+  /* Without this, Chromium renders native form controls (range, checkbox,
+     scrollbars) in its light default theme regardless of the page's own
+     dark CSS — the volume slider's plain track was exactly that: a white
+     box, since accent-color alone only tints the fill, not the base widget. */
+  color-scheme: dark;
+  --bg: #06090c;
+  /* 1.87: these four are translucent now. --bg-2 is the dark inset "well"
+     (inputs, code blocks), --surface the pale pane (pills, rows, panels). */
+  --bg-2: rgba(3, 7, 9, 0.42);
+  --surface: rgba(255, 255, 255, 0.07);
+  --surface-hover: rgba(255, 255, 255, 0.13);
+  --border: rgba(255, 255, 255, 0.14);
+  --border-soft: rgba(255, 255, 255, 0.075);
+  --glass: linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035));
+  --glass-strong: rgba(13, 18, 22, 0.66);
+  --glass-blur: blur(22px) saturate(165%);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 10px 34px rgba(2, 6, 9, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  /* The colour wash the glass blurs. Teal still leads; the cooler glows are
+     there so a frosted panel has more than one hue to pick up. */
+  --backdrop:
+    radial-gradient(1200px 800px at 10% -10%, rgba(0, 194, 168, 0.30), transparent 60%),
+    radial-gradient(1000px 720px at 100% 0%, rgba(56, 120, 255, 0.20), transparent 60%),
+    radial-gradient(1000px 700px at 78% 108%, rgba(16, 185, 129, 0.15), transparent 60%),
+    radial-gradient(820px 620px at -4% 82%, rgba(110, 76, 230, 0.15), transparent 60%),
+    linear-gradient(160deg, #081116, #06090c 55%, #080c14);
+  --text: #f2f4f5;
+  --text-secondary: #cfd5da;
+  --muted: #9aa2a9;
+  --accent: #00c2a8;
+  --accent-hover: #4ee8d2;
+  --accent-tint: rgba(0, 194, 168, 0.16);
+  --on-accent: #04231f;        /* the design puts near-black on its teal pills */
+  --faint: #737b82;
+  --dim: #838b92;
+  --disabled: #4a5158;
+  --ok: #22c55e;
+  --danger: #ef4444;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --font-display: 'Anton', Impact, sans-serif;
+  --font-ui: 'Barlow Condensed', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Self-hosted rather than pulled from Google's CDN on every page load —
+   HomeReel's README promises no external services, and a webfont request is
+   exactly the kind of thing that would quietly break that. One weight per
+   file; only the weights the design actually uses (no synthetic bolding). */
+@font-face {
+  font-family: 'Anton';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Anton-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Barlow-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Barlow-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Barlow-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/BarlowCondensed-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/BarlowCondensed-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/BarlowCondensed-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IBMPlexMono-400.woff2') format('woff2');
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  /* See --backdrop in :root — fixed, so the glass panels scroll over it. */
+  background: var(--backdrop), var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: 'Barlow', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Shell: sidebar + content ---------- */
+
+:root {
+  --sidebar-w: 226px;
+  --sidebar-w-collapsed: 64px;
+}
+
+body.app {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  background: rgba(20, 16, 27, 0.72);
+  backdrop-filter: blur(14px);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  transition: width 0.18s ease;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sidebar-toggle {
+  align-self: flex-start;
+  /* The button carries 6px of padding for its hover target, so its border box
+     starts 6px left of the chevron. Pull it back by the same amount and the
+     glyph lines up with the logo's left edge instead of sitting inside it. */
+  margin-left: -6px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  flex: none;
+}
+.sidebar-toggle svg { width: 18px; height: 18px; }
+.sidebar-toggle:hover { background: var(--surface-hover); color: var(--text); }
+
+.content {
+  flex: 1;
+  min-width: 0;      /* lets the grid shrink instead of overflowing the page */
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: rgba(13, 10, 18, 0.72);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header h1 { font-size: 20px; margin: 0; }
+
+/* Wordmark + reel. The SVG inherits `color`, so both scale with the theme.
+   Also the Home shortcut (see #brandHome in index.html/app.js) — cursor and
+   a hover/focus fade are the only visual cue since it isn't styled to look
+   like a button. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  cursor: pointer;
+}
+.brand:hover, .brand:focus-visible {
+  opacity: 0.8;
+  outline: none;
+}
+.brand h1 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  color: var(--accent);
+  flex: none;
+}
+.logo-sm { width: 26px; height: 26px; }
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  color: var(--muted);
+  padding: 10px 12px 10px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tab-btn[hidden] { display: none; }
+.tab-btn:hover { background: var(--surface-hover); color: var(--text); }
+.tab-btn.active {
+  background: rgba(0, 194, 168, 0.09);
+  color: var(--text);
+  font-weight: 600;
+  border-left-color: var(--accent);
+}
+
+.nav-icon { width: 20px; height: 20px; flex: none; }
+
+/* The library entries are rendered into this, so it carries the nav's spacing. */
+.nav-libraries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---------- Movies > Collections disclosure ---------- */
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-group[hidden] { display: none; }
+
+.nav-caret {
+  margin-left: auto;
+  display: flex;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+.nav-caret svg { width: 15px; height: 15px; }
+.tab-btn.active .nav-caret { color: inherit; }
+.nav-group.open .nav-caret { transform: rotate(90deg); }
+
+.nav-sub {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 18px;          /* indents the sub-item under its parent */
+}
+.nav-group.open .nav-sub { display: flex; }
+
+.tab-sub { font-size: 13px; }
+.tab-sub .nav-icon { width: 17px; height: 17px; }
+
+/* ---------- Collapsed rail ---------- */
+
+body.sidebar-collapsed .sidebar { width: var(--sidebar-w-collapsed); }
+body.sidebar-collapsed .brand h1,
+body.sidebar-collapsed .nav-label { display: none; }
+body.sidebar-collapsed .sidebar-top { align-items: center; }
+body.sidebar-collapsed .sidebar-toggle { margin-left: 0; }
+body.sidebar-collapsed .brand { display: none; }
+body.sidebar-collapsed .tab-btn { justify-content: center; padding: 10px 0; }
+body.sidebar-collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+body.sidebar-collapsed .nav-caret { display: none; }
+body.sidebar-collapsed .nav-sub { display: flex; padding-left: 0; }
+
+/* Narrow screens get the rail whether or not it was collapsed by hand. */
+@media (max-width: 760px) {
+  .sidebar { width: var(--sidebar-w-collapsed); }
+  .brand h1, .nav-label { display: none; }
+  .brand { display: none; }
+  .sidebar-top { align-items: center; }
+  .sidebar-toggle { margin-left: 0; }
+  .tab-btn { justify-content: center; padding: 10px 0; }
+  .nav-caret { display: none; }
+  .nav-sub { display: flex; padding-left: 0; }
+  /* Top mode collapses to the same icon rail as everyone else below this
+     width — a full horizontal bar has nowhere to go on a narrow screen. */
+  body.app[data-nav-mode="top"] .sidebar {
+    flex-direction: column;
+    width: var(--sidebar-w-collapsed);
+    height: 100vh;
+    padding: 16px 12px;
+    gap: 8px;
+  }
+  body.app[data-nav-mode="top"] .tabs,
+  body.app[data-nav-mode="top"] .nav-libraries { flex-direction: column; }
+  body.app[data-nav-mode="top"] .nav-profile-chip { margin-left: 0; margin-top: auto; }
+}
+
+/* ---------- The profile chip pinned in the nav — bottom of the rail,
+   right side of the top bar ---------- */
+
+.nav-profile-chip {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px;
+}
+.nav-profile-chip:hover { background: var(--surface-hover); }
+.nav-profile-initial {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--accent);
+  flex: none;
+}
+.nav-profile-name {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+}
+.nav-profile-switch { font-family: var(--font-mono); font-size: 10px; color: var(--faint); }
+body.sidebar-collapsed .nav-profile-name,
+body.sidebar-collapsed .nav-profile-switch { display: none; }
+
+/* ---------- navMode: top ---------- */
+
+body.app[data-nav-mode="top"] { flex-direction: column; }
+body.app[data-nav-mode="top"] .sidebar {
+  width: 100%;
+  height: 74px;
+  flex-direction: row;
+  align-items: center;
+  gap: 32px;
+  padding: 0 44px;
+  border-right: none;
+  border-bottom: 1px solid var(--border);
+}
+body.app[data-nav-mode="top"] .sidebar-top { flex-direction: row; margin-bottom: 0; flex: none; }
+body.app[data-nav-mode="top"] .sidebar-toggle { display: none; }
+body.app[data-nav-mode="top"] .tabs { flex-direction: row; align-items: center; gap: 4px; flex: 1; }
+body.app[data-nav-mode="top"] .nav-libraries { flex-direction: row; gap: 4px; }
+body.app[data-nav-mode="top"] .nav-group { flex-direction: row; align-items: center; }
+body.app[data-nav-mode="top"] .nav-sub { flex-direction: row; padding-left: 4px; }
+body.app[data-nav-mode="top"] .tab-btn {
+  border-left: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 10px 10px 0 0;
+}
+body.app[data-nav-mode="top"] .tab-btn.active { border-left: none; border-bottom-color: var(--accent); }
+body.app[data-nav-mode="top"] .nav-profile-chip { margin-top: 0; margin-left: auto; }
+
+#scanBtn, #checkBtn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#scanBtn:hover, #checkBtn:hover { background: var(--surface-hover); border-color: var(--accent); }
+#scanBtn[hidden], #checkBtn[hidden] { display: none; }   /* survives adding a display: to #scanBtn/#checkBtn */
+
+/* width:100% is load-bearing: .content is a column flex container, so main is
+   a flex item with auto cross-axis margins — per the flexbox spec that
+   disables align-items:stretch and shrink-wraps main to its content's width
+   instead of the intended max-width, however wide that content happens to be.
+   An explicit width overrides the auto-margin special case and restores
+   "stretch to 100%, cap at max-width, center the leftover" as one operation. */
+main { width: 100%; max-width: 1520px; margin: 0 auto; padding: 24px 44px; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.card { cursor: pointer; }
+
+/* The poster box: its own bordered, clipped element (Plex/Jellyfin-style
+   fixed vertical rectangle) rather than the whole card, because the meta
+   line below now sits outside it in normal flow — see .card-meta. */
+.card-box {
+  position: relative;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  /* The design's own dedicated card-border tone, one shade darker than the
+     --border used for hairlines, inputs and chips elsewhere. */
+  border: 1px solid #1b1e23;
+  transition: transform 0.15s ease;
+}
+.card:hover .card-box { transform: translateY(-4px); }
+
+.card .poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* cover: fills the tile edge to edge with no exposed background on either
+     side, cropping rather than letterboxing a poster whose own ratio
+     doesn't match the tile's. */
+  object-fit: cover;
+  display: block;
+}
+
+/* Keeps the title legible over bright artwork. Always on — the title itself
+   is no longer a hover-reveal (see .card-title). Stacks above the image via
+   DOM order (no z-index needed: inset:0 alone gives it full box size even
+   with no content of its own, so it never collapses to zero height). */
+.card-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(8, 9, 11, 0) 42%, rgba(8, 9, 11, 0.92) 100%);
+}
+
+/* Remove-from-Continue-Watching, top-left — mirrors the watched badge's
+   top-right corner. Still hover-only: unlike "watched" this isn't something
+   a shelf needs to read at a glance, and it only exists on Continue Watching
+   cards in the first place (onRemove is null everywhere else, so card()
+   never renders it there). */
+.card .card-remove {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.card:hover .card-remove { opacity: 1; }
+.card .card-remove:hover { background: var(--danger); }
+@media (hover: none) {
+  .card .card-remove { opacity: 1; }
+}
+
+/* Watched marker, top-right — read at a glance across a grid, so unlike the
+   remove button it does not wait for a hover. */
+.card .watched-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The poster underneath can be any colour, so the badge carries its own
+     separation rather than relying on contrast with the art. */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+.card .watched-badge svg { width: 14px; height: 14px; display: block; }
+
+/* Already seen, so it recedes until pointed at. */
+.card.watched .poster { opacity: 0.62; transition: opacity 0.15s ease; }
+.card.watched:hover .poster { opacity: 1; }
+
+/* How far into a title you are, pinned along the bottom edge — read at a
+   glance across a shelf, not something that waits on a hover. */
+.card .card-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.card .card-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.card .card-title {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.card .card-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+  font-family: var(--font-mono);
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+#collectionTitle {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Player: full-viewport ---------- */
+
+.player {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.player.hidden { display: none; }
+
+.player-video-area {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+  background-image: repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.045) 0 2px, transparent 2px 16px);
+  background-color: #000;
+  overflow: hidden;
+}
+#videoPlayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+.player-stripes { display: none; }   /* the pattern lives on .player-video-area itself, behind the video */
+.player-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 60% at 50% 45%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+/* Centered readout + big play glyph — shown only while paused, so nothing
+   sits over the picture during actual playback. */
+.player-center {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  pointer-events: none;
+}
+.player.paused .player-center { display: flex; }
+.player-annotation {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.player-play-glyph {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+.player-play-glyph[hidden] { display: none; }
+
+.player-topbar {
+  position: absolute;
+  left: 34px;
+  top: 30px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.player-back {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.player-back:hover { border-color: var(--accent); }
+.player-title {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.player-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 3px;
+}
+
+/* Overlaid on the video itself, Netflix-style, rather than living in the
+   control bar below it — it only matters for a few seconds near the start of
+   an episode and should not compete with controls you use for the whole title. */
+.skip-intro-btn {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.skip-intro-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+.skip-intro-btn[hidden] { display: none; }
+
+.player-controls { padding: 20px 34px 26px; background: linear-gradient(180deg, rgba(0, 0, 0, 0.2), #000 60%); }
+
+/* The Fullscreen API does hide the browser chrome, but .player-controls is a
+   normal flex row taking its own slice of height — so the video itself never
+   reaches the screen's edges, and it doesn't read as "real" fullscreen next to
+   apps like YouTube/Netflix. In fullscreen, let the video fill the entire
+   screen and float the control bar over its bottom edge instead. */
+.player:fullscreen .player-video-area,
+.player:-webkit-full-screen .player-video-area {
+  position: absolute;
+  inset: 0;
+}
+.player:fullscreen .player-controls,
+.player:-webkit-full-screen .player-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+}
+.player-topbar, .player-controls { transition: opacity 0.25s ease; }
+.player.controls-hidden:fullscreen .player-topbar,
+.player.controls-hidden:-webkit-full-screen .player-topbar,
+.player.controls-hidden:fullscreen .player-controls,
+.player.controls-hidden:-webkit-full-screen .player-controls {
+  opacity: 0;
+  pointer-events: none;
+}
+.player.controls-hidden:fullscreen .player-video-area,
+.player.controls-hidden:-webkit-full-screen .player-video-area {
+  cursor: none;
+}
+
+.player-scrub {
+  height: 5px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 16px;
+}
+.player-scrub-buffered { height: 100%; border-radius: 12px; background: rgba(255, 255, 255, 0.28); width: 0%; }
+.player-scrub-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 12px;
+  background: var(--accent);
+  width: 0%;
+}
+.player-scrub-knob {
+  position: absolute;
+  top: -4px;
+  left: 0%;
+  width: 13px;
+  height: 13px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.player-bar { display: flex; align-items: center; gap: 22px; }
+.player-icon-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  width: 26px;
+}
+.player-step-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.player-step-btn:hover { border-color: var(--accent); }
+.player-time { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); }
+.player-time .dim { color: var(--faint); }
+
+.player-volume { display: flex; align-items: center; gap: 10px; margin-left: 8px; }
+.vol-label { font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+/* Custom track/thumb rather than leaning on accent-color: it only tints the
+   fill and thumb, leaving the base track however the OS/browser renders it
+   (a plain white pill in Chromium's light default) — same rounded, filled
+   look as .player-scrub above, drawn with a gradient so the fill tracks the
+   value without JS building a separate element per tick. */
+#volumeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 104px;
+  height: 5px;
+  border-radius: 12px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--vol-fill, 100%),
+    rgba(255, 255, 255, 0.16) var(--vol-fill, 100%)
+  );
+  cursor: pointer;
+}
+#volumeSlider::-webkit-slider-runnable-track { height: 5px; border-radius: 12px; background: transparent; }
+#volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: -4px;
+  cursor: pointer;
+}
+#volumeSlider::-moz-range-track { height: 5px; border-radius: 12px; background: rgba(255, 255, 255, 0.16); }
+#volumeSlider::-moz-range-progress { height: 5px; border-radius: 12px; background: var(--accent); }
+#volumeSlider::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+}
+
+.player-chips { margin-left: auto; display: flex; align-items: center; gap: 10px; position: relative; }
+.player-chip {
+  cursor: pointer;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-secondary);
+  border-radius: 9px;
+  padding: 6px 12px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.player-chip:hover { border-color: var(--accent); color: #fff; }
+.player-chip.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+.player-chip-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 10;
+}
+.player-chip-menu[hidden] { display: none; }
+.player-chip-menu .option {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.player-chip-menu .option:hover { background: var(--surface-hover); color: #fff; }
+.player-chip-menu .option.active { color: var(--accent); }
+
+.transcode-status { color: var(--muted); font-size: 12px; margin-top: 10px; }
+
+.episode-nav-strip {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+}
+.episode-nav-strip[hidden] { display: none; }
+.next-up-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.next-up-title {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.episode-nav-buttons { margin-left: auto; display: flex; gap: 8px; }
+.episode-nav-buttons button {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.episode-nav-buttons button:hover:not(:disabled) { border-color: var(--accent); color: #fff; }
+.episode-nav-buttons button:disabled { opacity: 0.4; cursor: default; }
+
+/* Resuming is done to you, so it is stated and made undoable in the same breath
+   rather than left for you to notice from the scrubber. */
+.resume-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-tint);
+  color: #fff;
+  font-size: 13px;
+}
+.resume-notice[hidden] { display: none; }
+.resume-notice button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.resume-notice button:hover { text-decoration: underline; }
+
+
+/* ---------- Sign-in: two-column split ---------- */
+
+.login-body {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  min-height: 100vh;
+  /* Overrides the page-wide teal glow from body{} above — the split screen
+     draws its own on the left half instead. */
+  background: var(--bg);
+}
+
+.login-visual {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 20% 10%, #0c3a36 0%, var(--bg) 62%);
+}
+.login-visual-stripes {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.045) 0 2px, transparent 2px 13px);
+}
+.login-visual-inner {
+  position: relative;
+  height: 100%;
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.login-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.login-mark span {
+  font-family: var(--font-display);
+  font-size: 27px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.login-eyebrow {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+.login-pitch h1 {
+  font-family: var(--font-display);
+  font-size: 74px;
+  line-height: 0.94;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  max-width: 12ch;
+}
+.login-pitch p {
+  max-width: 44ch;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 22px 0 0;
+}
+
+.login-stat {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: 0.08em;
+  min-height: 1em;   /* holds its place while /api/public/stats is in flight */
+}
+
+.login-form-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: var(--bg-2);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-heading {
+  font-family: var(--font-ui);
+  font-size: 34px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 6px;
+}
+.login-sub {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0 0 26px;
+}
+
+.login-card label {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.login-card input {
+  padding: 13px 14px;
+  margin-bottom: 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+}
+.login-card input:focus { outline: none; border-color: var(--accent); }
+
+.login-card button {
+  padding: 15px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+.login-card button:disabled { opacity: 0.6; cursor: default; }
+.login-card button:hover:not(:disabled) { background: var(--accent-hover); }
+
+.login-error {
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 18px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* Below this, the pitch is dead weight — hide it and let the form take the
+   full width rather than compressing a 74px headline into a sliver. */
+@media (max-width: 860px) {
+  .login-body { grid-template-columns: 1fr; }
+  .login-visual { display: none; }
+  .login-form-panel { padding: 32px 24px; }
+}
+
+
+/* ---------- Profile picker ---------- */
+
+.profiles-body {
+  min-height: 100vh;
+  background: radial-gradient(110% 80% at 50% 0%, #0f1418 0%, var(--bg) 60%);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 46px;
+  padding: 60px 24px;
+}
+
+.profiles-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
+}
+.profiles-mark span {
+  font-family: var(--font-display);
+  font-size: 23px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.profiles-heading {
+  font-family: var(--font-ui);
+  font-size: 38px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-align: center;
+}
+
+.profiles-row {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.profile-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 148px;
+  cursor: pointer;
+}
+.profile-tile:not(.add-tile):hover { opacity: 0.82; }
+
+.profile-avatar {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 52px;
+  text-transform: uppercase;
+}
+
+.profile-avatar-add {
+  background: transparent;
+  border: 2px dashed var(--border);
+  color: var(--muted);
+}
+.profile-tile.add-tile:hover .profile-avatar-add { border-color: var(--accent); color: var(--text); }
+
+.profile-name {
+  font-family: var(--font-ui);
+  font-size: 19px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.profile-note {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.06em;
+}
+
+/* Manage mode: an editable name field in place of the plain label, and a
+   delete badge riding the avatar's corner like the watched badge on a card. */
+.profile-name-edit {
+  width: 100%;
+  padding: 4px 2px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 19px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.profile-name-edit:focus { outline: none; border-color: var(--accent); }
+
+.profile-delete {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  background: var(--danger);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profiles-manage {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  padding: 11px 26px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.profiles-manage:hover { border-color: var(--accent); color: var(--text); }
+
+.profiles-add-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.profiles-add-form[hidden] { display: none; }
+.profiles-add-form input {
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  width: 200px;
+}
+.profiles-add-form input:focus { outline: none; border-color: var(--accent); }
+.profiles-add-form button[type="submit"] {
+  padding: 11px 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.profiles-add-form button[type="submit"]:hover { background: var(--accent-hover); }
+.profiles-add-form .login-error { margin: 0; width: 100%; }
+
+/* ---------- Two-factor: sign-in steps, QR, backup codes ---------- */
+
+/* The card now holds four steps and shows one. Each is its own column, so the
+   label/input rules above still line up inside it. */
+.login-step { display: flex; flex-direction: column; }
+.login-step[hidden] { display: none; }
+
+.login-card .field-note { text-align: center; margin: -6px 0 16px; }
+
+/* Digits, spaced out and centred — this box is read off a phone and typed. */
+.code-input {
+  text-align: center;
+  font-size: 20px !important;
+  letter-spacing: 0.28em;
+  font-family: var(--font-mono);
+}
+.code-input::placeholder { letter-spacing: 0.28em; color: var(--border); }
+
+/* segno draws in pure black on white; the frame gives it the quiet zone and
+   rounds it into the card rather than sitting on it as a bare rectangle. */
+.qr-frame {
+  align-self: center;
+  background: #ffffff;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  line-height: 0;
+  margin-bottom: 16px;
+}
+.qr-frame svg { width: 180px; height: 180px; display: block; }
+
+.secret-key {
+  display: block;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 18px;
+  word-break: break-all;
+  user-select: all;            /* one click selects the whole key to copy */
+}
+
+.backup-codes {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.9;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin: 0 0 14px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.backup-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.backup-actions button { flex: 1; }
+
+.confirm-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+/* .login-card input styles every field as a text box — not this one. */
+.confirm-line input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Secondary action: reads as a link, works as a button or an anchor. */
+.link-btn {
+  background: none !important;
+  border: none;
+  color: var(--muted) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-decoration: none;
+  text-align: center;
+  padding: 10px 0 !important;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--text) !important; }
+
+/* Settings > Two-factor reuses the same pieces at panel width. */
+.panel .qr-frame { align-self: flex-start; margin-top: 4px; }
+.panel .backup-codes { text-align: left; max-width: 320px; }
+.panel .backup-actions { justify-content: flex-start; }
+.panel .backup-actions button { flex: 0 0 auto; padding: 8px 18px; }
+.twofa-status { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.pill-ok { background: rgba(34, 197, 94, 0.16); color: var(--ok); }
+.twofa-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.twofa-actions button,
+.backup-actions button:not(.link-btn) {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.twofa-actions button:hover,
+.backup-actions button:not(.link-btn):hover { background: var(--surface-hover); border-color: var(--accent); }
+
+/* ---------- Account chip in the header ---------- */
+
+.account { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.account .who { color: var(--muted); font-size: 13px; }
+.account .who .role {
+  color: var(--accent);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+
+#logoutBtn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+#logoutBtn:hover { background: var(--surface-hover); border-color: var(--accent); }
+
+
+/* ---------- Settings ---------- */
+
+.settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  align-items: start;
+  max-width: 900px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.panel h2 {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  font-size: 20px;
+  margin: 0 0 4px;
+  letter-spacing: 0.05em;
+}
+.panel h3 { font-size: 14px; margin: 24px 0 12px; color: var(--text); }
+.panel-sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+
+.stack-form { display: flex; flex-direction: column; }
+
+.stack-form label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.stack-form input,
+.stack-form select {
+  padding: 9px 12px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 14px;
+}
+.stack-form input:focus,
+.stack-form select:focus { outline: none; border-color: var(--accent); }
+
+.stack-form button {
+  align-self: flex-start;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-msg { font-size: 13px; margin-top: 12px; min-height: 18px; }
+.form-msg.ok { color: var(--ok); }
+.form-msg.bad { color: var(--danger); }
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.user-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-table td {
+  padding: 10px 8px 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-table .muted-cell { color: var(--muted); font-size: 12px; }
+
+.pill {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pill-admin { background: var(--accent-tint); color: var(--accent); }
+.pill-warn { background: rgba(239, 68, 68, 0.16); color: var(--danger); }
+.user-table .pill { margin-left: 8px; }
+
+/* Library access pickers: the create-user form and each row of the user table */
+.lib-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-bottom: 14px;
+}
+
+.lib-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* .stack-form input styles every field as a text box — undo that for the
+   checkboxes so they render as checkboxes. */
+.lib-choice input {
+  accent-color: var(--accent);
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* Admins are shown ticked-but-locked rather than hidden, so it is obvious the
+   boxes are not simply missing. */
+.lib-choices-locked { opacity: 0.55; }
+.lib-choices-locked .lib-choice,
+.lib-choices-locked .lib-choice input { cursor: not-allowed; }
+
+.user-table .lib-choices { margin-bottom: 0; }
+
+/* Folder picker in Settings > Libraries */
+.browser {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-2);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.browser-up {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  cursor: pointer;
+  line-height: 1;
+}
+.browser-up:disabled { opacity: 0.35; cursor: default; }
+
+.browser-path {
+  font-size: 12.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Capped so a media root with hundreds of folders stays a scroll, not a page. */
+.browser-list {
+  max-height: 230px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.browser-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px 2px 4px;
+  border-bottom: 1px solid rgba(34, 38, 44, 0.5);
+}
+.browser-row:last-child { border-bottom: none; }
+.browser-here { background: rgba(255, 255, 255, 0.03); }
+
+.browser-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.browser-open:hover { background: var(--surface-hover); }
+.browser-folder::before { content: "\1F4C1"; margin-right: 8px; opacity: 0.75; }
+
+.browser-pick {
+  flex: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.browser-pick:hover { border-color: var(--accent); background: var(--surface-hover); }
+
+.stack-form button:disabled { opacity: 0.45; cursor: default; }
+
+.field-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin: -6px 0 16px;
+}
+
+.link-danger {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+.link-danger:hover { text-decoration: underline; }
+
+
+/* ---------- Tab hero ---------- */
+
+.tab-hero {
+  position: relative;
+  margin: 6px 0 44px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  /* A fixed height clipped a long title pushed up by the bottom-anchored
+     text stack — same fix the 760px rule below already used for its own
+     shorter default, just never carried up to the desktop size. */
+  min-height: 520px;
+  height: auto;
+}
+
+/* Clips the hero while it (or its outgoing clone, see swipeHero() in app.js)
+   is mid-slide — otherwise the translateX below would push a scrollbar in. */
+.tab-hero-slot { overflow: hidden; }
+
+.tab-hero-stripes {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 15px);
+}
+/* Left-to-right darkening, so the text column stays legible over whatever
+   the placeholder gradient (or, later, real key art) puts behind it. */
+.tab-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(8, 9, 11, 0.94) 0%, rgba(8, 9, 11, 0.72) 42%, rgba(8, 9, 11, 0.1) 100%);
+}
+.tab-hero-body {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 52px;
+  max-width: 720px;
+}
+.tab-hero-badge {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+.tab-hero-title {
+  font-family: var(--font-display);
+  font-size: 68px;
+  line-height: 0.95;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+.tab-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0 14px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.tab-hero-dot { color: var(--disabled); }
+.tab-hero-synopsis {
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0 0 28px;
+  max-width: 56ch;
+}
+.tab-hero-actions { display: flex; gap: 12px; }
+.tab-hero-actions button {
+  border-radius: var(--radius-sm);
+  padding: 14px 30px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+.tab-hero-actions button:hover { background: var(--accent-hover); }
+.tab-hero-actions button.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 400;
+  padding: 14px 26px;
+}
+.tab-hero-actions button.secondary:hover { background: rgba(255, 255, 255, 0.08); border-color: var(--accent); }
+
+/* The one piece of real key art a hero has — sits to the right of the text
+   column (which is itself capped at 720px, see .tab-hero-body), so the two
+   never fight over the same space. Comes after .tab-hero-scrim in markup
+   order, which is what puts it above that gradient with no z-index needed. */
+.tab-hero-poster {
+  position: absolute;
+  right: 52px;
+  bottom: 52px;
+  width: 200px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+.tab-hero-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* Swiped-tab transition (see swipeHero() in app.js): the incoming .tab-hero
+   slides in from the edge the target tab sits on relative to the one we came
+   from, while a fixed-position clone of the outgoing hero — same rect,
+   snapshotted before the panel switch — slides out past the opposite edge on
+   top of it. Both share one transition so they move in lockstep. */
+.tab-hero,
+.tab-hero-clone {
+  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 420ms ease;
+}
+.tab-hero-clone {
+  position: fixed;
+  z-index: 50;
+  margin: 0;
+  pointer-events: none;
+}
+.tab-hero-clone.hero-swipe-out-left { transform: translateX(-100%); opacity: 0; }
+.tab-hero-clone.hero-swipe-out-right { transform: translateX(100%); opacity: 0; }
+.tab-hero.hero-swipe-in-right { transform: translateX(100%); opacity: 0; }
+.tab-hero.hero-swipe-in-left { transform: translateX(-100%); opacity: 0; }
+.tab-hero.hero-swipe-in-active { transform: translateX(0); opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-hero,
+  .tab-hero-clone { transition: opacity 200ms ease; }
+  .tab-hero.hero-swipe-in-right,
+  .tab-hero.hero-swipe-in-left,
+  .tab-hero-clone.hero-swipe-out-left,
+  .tab-hero-clone.hero-swipe-out-right { transform: none; }
+}
+
+@media (max-width: 760px) {
+  .tab-hero { height: auto; min-height: 420px; }
+  .tab-hero-body { padding: 32px; max-width: none; }
+  /* No room next to the text at this width without the two overlapping. */
+  .tab-hero-poster { display: none; }
+  .tab-hero-title { font-size: 44px; }
+}
+
+
+/* ---------- Home shelves ---------- */
+
+.shelf-block { margin-bottom: 46px; }
+.shelf-block h2 {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  font-size: 23px;
+  margin: 0 0 2px;
+  letter-spacing: 0.06em;
+}
+.shelf-sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+
+/* A row that scrolls sideways instead of wrapping, so each shelf stays one
+   line deep however many titles are in it. */
+.shelf {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.shelf::-webkit-scrollbar { height: 8px; }
+.shelf::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.shelf::-webkit-scrollbar-track { background: transparent; }
+
+.shelf .card {
+  width: 150px;
+  flex: none;
+}
+
+/* ---------- Title detail: full page ---------- */
+
+.detail-backdrop {
+  position: relative;
+  margin: 0 -44px;
+  height: 440px;
+  overflow: hidden;
+}
+.detail-backdrop-stripes {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 15px);
+}
+.detail-backdrop-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 9, 11, 0.55) 0%, rgba(8, 9, 11, 0.2) 40%, var(--bg) 100%);
+}
+.detail-back {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  background: rgba(8, 9, 11, 0.6);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.detail-back:hover { border-color: var(--accent); color: var(--text); }
+
+.detail-layout {
+  position: relative;
+  margin-top: -170px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 42px;
+  align-items: flex-start;
+}
+
+.detail-poster-col { flex: none; }
+.detail-poster {
+  position: relative;
+  width: 250px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  aspect-ratio: 2/3;
+  border: 1px solid var(--border);
+}
+.detail-poster-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+
+.detail-main { padding-top: 96px; flex: 1 1 520px; min-width: 0; }
+
+.detail-kind {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.detail-page-title {
+  font-family: var(--font-display);
+  font-size: 60px;
+  line-height: 0.95;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.detail-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 13px;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 22px;
+}
+.detail-meta-row .dot { color: var(--disabled); }
+.detail-synopsis {
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.65;
+  margin: 0 0 28px;
+  max-width: 62ch;
+}
+
+.detail-actions { display: flex; gap: 12px; margin-bottom: 44px; flex-wrap: wrap; }
+.detail-actions button {
+  padding: 14px 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.detail-actions button:hover { background: var(--accent-hover); }
+.detail-actions button.secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-weight: 400;
+  padding: 14px 24px;
+}
+.detail-actions button.secondary:hover { background: transparent; border-color: var(--accent); color: var(--text); }
+
+/* ---- episodes (shows/anime only) ---- */
+
+.detail-section-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.detail-section-head h3 {
+  font-family: var(--font-ui);
+  font-size: 21px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.detail-section-head .count { font-family: var(--font-mono); font-size: 11px; color: var(--faint); }
+
+/* Native <select> has no styling anywhere else on this page to inherit —
+   without this it renders as the browser's own light-mode dropdown, jarring
+   against the rest of the (dark) detail page. */
+.season-select {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 36px 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  /* The native dropdown arrow is its own sub-control the browser paints
+     itself — page CSS reaches its background/text but not that arrow, which
+     is why it turned into a plain white box on hover instead of following
+     the theme. appearance:none removes that control entirely; the chevron
+     below is a hand-drawn stand-in (stroke color is --muted, #8a9096,
+     hardcoded because a data: URI is opaque text — var() inside one never
+     resolves). */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: var(--bg-2)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a9096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  background-size: 16px;
+}
+.season-select:hover,
+.season-select:focus { outline: none; border-color: var(--accent); }
+
+.episode-rows { display: flex; flex-direction: column; gap: 2px; margin-bottom: 46px; }
+.episode-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.episode-row:hover { border-color: var(--accent); }
+.episode-row.first-episode { background: var(--accent-tint); }
+.episode-row .num { font-family: var(--font-display); font-size: 26px; color: var(--disabled); width: 38px; flex: none; }
+.episode-row .thumb {
+  width: 108px;
+  height: 62px;
+  flex: none;
+  border-radius: 9px;
+  background-size: cover;
+  background-position: center;
+}
+.episode-row .body { min-width: 0; flex: 1; }
+.episode-row .ep-title {
+  font-family: var(--font-ui);
+  font-size: 19px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.episode-row .blurb {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.episode-row .dur { font-family: var(--font-mono); font-size: 11px; color: var(--dim); flex: none; }
+
+/* ---- cast (kept from the description+cast popup this page replaces) ---- */
+
+.detail-section { margin-top: 22px; margin-bottom: 46px; }
+.detail-section h4 {
+  font-family: var(--font-ui);
+  font-size: 21px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0 0 16px;
+}
+
+.cast-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.cast-member { flex: none; width: 84px; text-align: center; }
+.cast-member img,
+.cast-avatar-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--bg-2);
+  margin: 0 auto 8px;
+  display: block;
+}
+.cast-name { font-size: 12px; font-weight: 600; line-height: 1.3; }
+.cast-character { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ---- more like this ---- */
+
+.grid-similar { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+
+/* ---- right column: facts + available in ---- */
+
+.detail-side { padding-top: 96px; flex: 1 1 260px; max-width: 320px; display: flex; flex-direction: column; gap: 24px; }
+.detail-fact-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+}
+.detail-fact-panel .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.detail-fact-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.detail-fact-row .k { color: var(--dim); }
+.detail-fact-row .v { color: var(--text-secondary); text-align: right; }
+
+.format-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.format-chip {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 5px 9px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .detail-backdrop { height: 280px; }
+  .detail-layout { margin-top: -90px; gap: 24px; }
+  .detail-poster { width: 150px; }
+  .detail-main, .detail-side { padding-top: 40px; }
+  .detail-page-title { font-size: 38px; }
+  .detail-side { max-width: none; }
+}
+
+.genre-chips {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 4px 0 26px;
+}
+.genre-chip {
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.genre-chip:hover { border-color: var(--accent); color: var(--text); }
+.genre-chip.active { background: var(--accent-tint); border-color: var(--accent); color: var(--accent); }
+
+/* ---------- Page title + count (Browse, and later My List/Collections) ---------- */
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 48px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 0 0 6px;
+  text-wrap: balance;
+}
+.page-sub { color: var(--muted); font-size: 15px; margin: 0 0 26px; }
+
+/* The "catalog" density from the design spec — wider tiles, roomier gap than
+   the default .grid, for a page that is browsed rather than skimmed inside a
+   panel. */
+.grid-catalog {
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 22px;
+}
+
+/* Shelf tiles are smaller than a catalog card by design (a horizontal row
+   reads many at a glance), so their title scales down from the 22/26px
+   catalog sizes rather than reusing them outright. */
+.shelf .card .card-title { font-size: 16px; }
+
+/* ---------- posterStyle: still (default is portrait, set above) ---------- */
+
+[data-poster-style="still"] .card-box { aspect-ratio: 332 / 187; }
+[data-poster-style="still"] .card .card-title { font-size: 26px; }
+[data-poster-style="still"] .shelf .card { width: 240px; }
+[data-poster-style="still"] .shelf .card .card-title { font-size: 18px; }
+[data-poster-style="still"] .grid-catalog { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+[data-poster-style="still"] .grid-similar { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
+
+/* ---------- Search ---------- */
+
+.search-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 20px 22px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  outline: none;
+}
+.search-input:focus { background: var(--bg-2); }
+.search-input::placeholder { color: var(--muted); }
+
+.search-pills { display: flex; gap: 9px; flex-wrap: wrap; margin: 22px 0 34px; }
+.search-pill {
+  cursor: pointer;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.search-pill:hover { border-color: var(--accent); color: var(--text); }
+
+.shelf-empty { color: var(--muted); font-size: 13px; }
+
+
+/* ---------- Live (admin) ---------- */
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.panel-head h2 {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  font-size: 23px;
+  margin: 0 0 2px;
+  letter-spacing: 0.06em;
+}
+
+/* Quietly says the page is refreshing itself, so a still list reads as "nobody
+   is watching" rather than "this screen is stale". */
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex: none;
+  margin-top: 8px;
+  animation: live-pulse 2.4s ease-in-out infinite;
+}
+@keyframes live-pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+.live-row {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.live-poster {
+  width: 52px;
+  height: 78px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--bg-2);
+}
+
+.live-body { flex: 1; min-width: 0; }
+
+.live-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+}
+.live-title > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Direct play costs nothing; a transcode is a GPU session, which is the thing
+   an admin actually wants to spot across a list. */
+.live-mode {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.live-mode.transcoding {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Episode titles come from the filename, so they can be a whole release name.
+   One line, clipped — the SxxEyy at the front is the part that identifies it. */
+.live-sub {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live-who { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+.live-who strong { color: var(--text); font-weight: 600; }
+
+.live-bar {
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.live-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+.live-pos {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 6px;
+}
+
+
+/* ---------- Design refresh: type treatment for chrome and meta text ----------
+   Appended last so it reliably wins the cascade for the few properties it
+   touches (font-family / text-transform / letter-spacing) without having to
+   re-order every section above it. None of the selectors below declare these
+   three properties anywhere earlier in the file, so nothing here fights an
+   existing rule. */
+
+.tab-btn,
+#scanBtn, #checkBtn,
+#logoutBtn,
+.stack-form button,
+.login-card button,
+.twofa-actions button,
+.backup-actions button:not(.link-btn),
+.browser-pick,
+.pill {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-sub,
+.live-pos,
+.browser-path,
+.user-table .muted-cell {
+  font-family: var(--font-mono);
+}
+
+/* The design brightens its solid accent buttons on hover rather than leaving
+   them flat; .detail-actions already does this with a filter, and .login-card
+   now has the spec's exact hover color (see the sign-in section above), so
+   this fallback is what's left covering the one button group with neither. */
+.stack-form button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+
+/* ---------- Glassmorphism (1.87) ----------
+   Frosted, translucent surfaces over the colour wash set on body{} above.
+   The palette tokens in :root already went translucent (--surface, --bg-2,
+   --border), so most chrome picked the look up from there; this block adds
+   the parts a token can't carry: the blur itself, the lit top edge, and a
+   darker tint for anything floating over video or key art. Appended last so
+   it wins the cascade without re-ordering the sections above. */
+
+/* Frosted panels sitting on the page backdrop. */
+.sidebar,
+.panel,
+.detail-fact-panel,
+.live-row,
+.search-input,
+.login-card {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-color: var(--border);
+  box-shadow: var(--glass-shadow);
+}
+.sidebar { box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04); }
+body.app[data-nav-mode="top"] .sidebar { box-shadow: 0 8px 30px rgba(2, 6, 9, 0.35); z-index: 20; }
+
+/* The sticky bar has the whole page scrolling underneath it, so it carries a
+   dark tint as well — plain glass there turns to mud over bright posters. */
+header {
+  background: rgba(8, 12, 15, 0.55);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge);
+}
+
+/* Floating over video or artwork: tinted glass, never the pale kind. */
+.player-chip-menu,
+.skip-intro-btn,
+.player-back,
+.detail-back,
+.tab-hero-actions button.secondary {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  backdrop-filter: blur(16px) saturate(170%);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), var(--glass-edge);
+}
+.tab-hero-actions button.secondary:hover { background: rgba(26, 34, 40, 0.7); }
+.skip-intro-btn:hover { background: rgba(26, 34, 40, 0.78); }
+.card .card-remove {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+/* Rows and pills: translucent from the tokens, lit along the top edge. No
+   blur of their own — a season can be dozens of rows, and each backdrop
+   filter is a separate compositing layer. */
+.episode-row,
+.genre-chip,
+.search-pill,
+.format-chip,
+.season-select,
+.profiles-manage,
+#scanBtn, #checkBtn,
+#logoutBtn,
+.twofa-actions button,
+.backup-actions button:not(.link-btn),
+.browser-pick,
+.browser-up {
+  box-shadow: var(--glass-edge);
+}
+.episode-row { transition: background 0.15s ease, border-color 0.15s ease; }
+.episode-row:hover { background: var(--surface-hover); }
+.episode-row.first-episode:hover { background: var(--accent-tint); }
+.search-pill { background: var(--surface); }
+.browser-row { border-bottom-color: var(--border-soft); }
+
+/* Nav: the active item is a lit teal pane rather than a flat tint. */
+.tab-btn.active {
+  background: linear-gradient(90deg, rgba(0, 194, 168, 0.2), rgba(0, 194, 168, 0.05));
+  box-shadow: var(--glass-edge);
+}
+.nav-profile-initial { box-shadow: var(--glass-edge); border: 1px solid rgba(0, 194, 168, 0.3); }
+
+/* Solid accent buttons keep their fill (they are the one opaque thing on the
+   page, on purpose) and pick up a glow and the same lit edge. */
+.login-card button:not(.link-btn),
+.stack-form button,
+.tab-hero-actions button:not(.secondary),
+.detail-actions button:not(.secondary),
+.profiles-add-form button[type="submit"] {
+  box-shadow: 0 6px 22px rgba(0, 194, 168, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.detail-actions button.secondary { background: var(--surface); box-shadow: var(--glass-edge); }
+.detail-actions button.secondary:hover { background: var(--surface-hover); }
+
+/* Artwork tiles: a glass rim and a soft drop, so they sit on the backdrop
+   rather than being cut into it. */
+.card-box {
+  border-color: rgba(255, 255, 255, 0.11);
+  box-shadow: 0 8px 22px rgba(2, 6, 9, 0.38);
+}
+.card:hover .card-box { border-color: rgba(255, 255, 255, 0.3); }
+.card-box, .card:hover .card-box { transition: transform 0.15s ease, border-color 0.15s ease; }
+.tab-hero {
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 50px rgba(2, 6, 9, 0.45), var(--glass-edge);
+}
+.detail-poster,
+.tab-hero-poster { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5); }
+
+/* The title page's key art used to fade into a flat --bg; the page behind it
+   is a gradient now, so fade the art itself out instead of painting over it. */
+.detail-backdrop {
+  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 45%, transparent 100%);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.detail-backdrop-scrim {
+  background: linear-gradient(180deg, rgba(6, 9, 12, 0.55) 0%, rgba(6, 9, 12, 0.2) 40%, rgba(6, 9, 12, 0.6) 100%);
+}
+
+/* Sign-in: the form is a glass card on the shared backdrop instead of a flat
+   second column. */
+.login-body,
+.profiles-body { background: var(--backdrop), var(--bg); }
+.login-visual { background: radial-gradient(120% 90% at 20% 10%, rgba(0, 194, 168, 0.2) 0%, transparent 62%); }
+.login-form-panel { background: none; }
+.login-card {
+  max-width: 440px;
+  padding: 40px 36px 32px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+}
+.login-card input:not([type="checkbox"]),
+.profiles-add-form input { background: var(--bg-2); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3); }
+.stack-form input:not([type="checkbox"]),
+.stack-form select,
+.secret-key,
+.backup-codes,
+.browser { box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3); }
+.login-card input:focus,
+.stack-form input:focus,
+.stack-form select:focus,
+.profiles-add-form input:focus,
+.search-input:focus { box-shadow: 0 0 0 3px rgba(0, 194, 168, 0.2); }
+.code-input::placeholder { color: var(--disabled); }
+@media (max-width: 860px) {
+  .login-card { padding: 30px 22px 24px; }
+}
+
+/* Profile picker tiles. */
+.profile-avatar:not(.profile-avatar-add) {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 14px 34px rgba(2, 6, 9, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.profile-avatar-add {
+  background: var(--surface);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+/* Without backdrop-filter the pale panels would be near-transparent text on a
+   gradient; give those browsers something close to the old solid surfaces. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sidebar, .panel, .detail-fact-panel, .live-row, .search-input, .login-card { background: rgba(16, 21, 26, 0.94); }
+  header { background: rgba(8, 12, 15, 0.94); }
+  .player-chip-menu, .skip-intro-btn, .player-back, .detail-back,
+  .tab-hero-actions button.secondary { background: rgba(13, 18, 22, 0.94); }
+}
+
+/* Two Settings defects found while restyling, both older than 1.87:
+   - .stack-form sets display:flex, which beats the hidden attribute, so the
+     two-factor "confirm password" and "scan the QR" steps were on screen
+     before anyone asked for them;
+   - the folder picker's buttons live inside a .stack-form, whose button rule
+     out-ranks their own, so every folder row rendered as a solid accent pill. */
+.stack-form[hidden] { display: none; }
+.stack-form button.link-btn { box-shadow: none; }
+.stack-form .browser-open {
+  align-self: auto;
+  background: none;
+  color: var(--text);
+  padding: 8px 6px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+.stack-form .browser-open:hover { background: var(--surface-hover); filter: none; }
+.stack-form .browser-pick,
+.stack-form .browser-up {
+  align-self: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--glass-edge);
+}
+.stack-form .browser-pick { padding: 4px 12px; font-size: 12px; }
+.stack-form .browser-up { padding: 0; border-radius: 8px; font-size: 13px; }
+.stack-form .browser-pick:hover { background: var(--surface-hover); border-color: var(--accent); filter: none; }
+
+
+/* ---------- "Get the apps" links (1.88) — only rendered when DOWNLOADS_URL is set ---------- */
+
+.panel-link {
+  display: inline-block;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 0 6px 22px rgba(0, 194, 168, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.panel-link:hover { filter: brightness(1.08); }
+
+.login-apps {
+  margin-top: 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+.login-apps:hover { color: var(--accent); }
+.login-apps[hidden] { display: none; }
