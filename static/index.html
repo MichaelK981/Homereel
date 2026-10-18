@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HomeReel</title>
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
-<link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-64.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='27' fill='none' stroke='%2300C2A8' stroke-width='5'/%3E%3Ccircle cx='32' cy='15' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='17.3' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Ccircle cx='46.7' cy='40.5' r='4.5' fill='%2300C2A8'/%3E%3Cpath d='M27 23.5 L44 32 L27 40.5 Z' fill='%2300C2A8'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/themes.css">
 <!-- Sets data-theme on <html> before first paint; see the note at its top. -->
@@ -29,11 +28,14 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
       <div class="brand" id="brandHome" role="button" tabindex="0" aria-label="Go to Home">
-        <picture class="brand-logo">
-          <source srcset="/brand/logo-static.webp" media="(prefers-reduced-motion: reduce)">
-          <img src="/brand/logo.webp" alt="HomeReel" width="600" height="176">
-        </picture>
-        <h1 class="sr-only">HomeReel</h1>
+        <svg class="logo logo-sm" viewBox="0 0 64 64" role="img" aria-label="HomeReel">
+        <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="4"/>
+        <circle cx="32" cy="15" r="4.5" fill="currentColor"/>
+        <circle cx="17.3" cy="40.5" r="4.5" fill="currentColor"/>
+        <circle cx="46.7" cy="40.5" r="4.5" fill="currentColor"/>
+        <path d="M27 23.5 L44 32 L27 40.5 Z" fill="currentColor"/>
+      </svg>
+        <h1>HomeReel</h1>
       </div>
       <button id="sidebarToggle" class="sidebar-toggle" title="Collapse sidebar" aria-label="Collapse sidebar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

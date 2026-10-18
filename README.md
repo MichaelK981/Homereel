@@ -1,7 +1,5 @@
 # HomeReel
 
-<p align="center"><img src="docs/logo.webp" alt="HomeReel — your media, your way" width="600"></p>
-
 A minimal, self-built Plex/Jellyfin alternative: scans your Movies, Series,
 and Anime folders, exposes a REST API, and streams video with proper seek
 support. It remembers where every account got to in every title, so playback
@@ -979,10 +977,8 @@ before 1.90 predate the repository, so they exist as images only.
   onto two lines. Below 760px wide, Play now takes the full width and the
   other two share the row beneath (themes with wider labels stack all three).
   Also fixed the Pixel Art theme's titles staying oversized on phones.
-- **1.92 (2026-10-18)** — New logo. The animated HomeReel lockup (hexagon
-  mark, wordmark and "Your media. Your way.") replaces the old reel icon and
-  typed name in the sidebar/top bar and on the sign-in page, served as an
-  animated WebP (about 320 KB, down from a 20 MB GIF) with a still frame for
-  devices that ask for reduced motion. The hexagon mark is now the browser
-  tab icon and the home-screen app icon (including Android's maskable
-  version). `/brand/` is public so the sign-in page can show it.
+- **1.92 (2026-10-18)** — New animated logo (hexagon mark and wordmark) in the
+  sidebar/top bar, sign-in page, browser tab and home-screen icons.
+- **1.93 (2026-10-18)** — Reverted 1.92: back to the original reel logo,
+  typed "HomeReel" name, tab icon and home-screen icons. Everything else is
+  unchanged from 1.91.
