@@ -14,6 +14,11 @@ just your files, indexed, access-controlled per user, and playable.
 |---|---|
 | ![Browse: every title in a poster grid with genre filters](docs/screenshots/browse.jpg) | ![Title page: poster, synopsis, details and the formats available](docs/screenshots/title.jpg) |
 
+**On a phone** — the same app, laid out for a narrow screen. It installs to the
+home screen as a web app (see [Install it on a phone](#install-it-on-a-phone)):
+
+<img src="docs/screenshots/phone.jpg" alt="HomeReel on a phone: the featured title with Play full width and Details and My List below" width="300">
+
 **Themes** — 21 looks, picked per profile in Settings → Theme (see [Themes](#themes)):
 
 ![Six of the themes side by side: Neon Glow, Paper Cutout, Split-Flap, Comic Book, Art Deco and Pixel Art](docs/screenshots/themes.jpg)
