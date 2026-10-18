@@ -2632,3 +2632,35 @@ header {
 }
 .login-apps:hover { color: var(--accent); }
 .login-apps[hidden] { display: none; }
+
+
+/* ---------- Logo (1.92) ----------
+   The animated lockup (mark + wordmark + tagline) replaces the old SVG reel
+   and the typed "HomeReel". It carries its own dark navy ground, so it is
+   shown as a rounded tile rather than trying to float on every theme's
+   background. A still frame is swapped in under prefers-reduced-motion (see
+   the <picture> in index.html/login.html). */
+.brand-logo { display: block; flex: none; line-height: 0; }
+.brand-logo img {
+  display: block;
+  height: 46px;
+  width: auto;
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+body.app[data-nav-mode="top"] .brand-logo img { height: 40px; }
+.login-mark .brand-logo img { height: 72px; border-radius: 10px; }
+
+/* Kept for screen readers: the logo image already says "HomeReel" visually. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

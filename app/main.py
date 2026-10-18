@@ -49,6 +49,10 @@ DOWNLOADS_URL = _downloads_url()
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
+# python:3.12-slim ships no /etc/mime.types, so the stdlib table lacks
+# .webp and StaticFiles would serve the logo as text/plain.
+mimetypes.add_type("image/webp", ".webp")
+
 
 def _theme_ids() -> tuple:
     """The theme registry lives in static/themes.js — the front end needs all
@@ -90,7 +94,7 @@ PUBLIC_PATHS = {"/login", "/api/auth/login", "/api/auth/verify", "/api/auth/setu
 # its credential here, the same way a pending-login cookie stands in for one
 # during the password/2FA steps. /approve is deliberately not in either set —
 # it is the phone's side, and the phone already has a real session by then.
-PUBLIC_PREFIXES = ("/icons/", "/fonts/", "/api/auth/quickconnect/poll/")
+PUBLIC_PREFIXES = ("/icons/", "/fonts/", "/brand/", "/api/auth/quickconnect/poll/")
 
 
 def _sync_artwork_quietly():

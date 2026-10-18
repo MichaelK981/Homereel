@@ -605,7 +605,6 @@ html[data-theme="neon"] :is(.shelf-block h2, .panel h2) {
 }
 html[data-theme="neon"] .card .card-title { font-size: 16px; letter-spacing: 0.06em; text-shadow: 0 0 10px rgba(0, 240, 255, 0.8); }
 html[data-theme="neon"] .tab-hero-title { font-size: 54px; line-height: 1.05; }
-html[data-theme="neon"] .brand .logo { filter: drop-shadow(0 0 6px #00f0ff) drop-shadow(0 0 14px #ff2bd6); color: #7ff8ff; }
 html[data-theme="neon"] .player-scrub-fill { box-shadow: 0 0 10px #00f0ff; }
 /* One flicker as the tube "strikes" when a hero appears, then steady. */
 html[data-theme="neon"][data-fx="on"] .tab-hero-title { animation: hr-strike 1.6s steps(1) 1 both; }
@@ -696,7 +695,6 @@ html[data-theme="chrome"] :is(.shelf-block h2, .panel h2) {
   color: transparent;
   letter-spacing: 0.12em;
 }
-html[data-theme="chrome"] .brand .logo { color: #dfe7ef; filter: drop-shadow(0 0 6px rgba(106, 212, 255, 0.7)); }
 
 
 /* =====================================================================
@@ -1163,8 +1161,6 @@ html[data-theme="ascii"] .card .card-title { font-family: 'VT323', monospace; fo
 html[data-theme="ascii"] .tab-btn::before { content: ">"; width: 0.8em; color: transparent; flex: none; }
 html[data-theme="ascii"] .tab-btn.active::before { color: inherit; }
 html[data-theme="ascii"] .tab-btn { border-left: none; }
-html[data-theme="ascii"] .brand h1 { font-family: 'VT323', monospace; font-size: 30px; }
-html[data-theme="ascii"] .brand h1::after { content: "_"; }
 html[data-theme="ascii"] .player-scrub-fill { background: #7dff8a; }
 
 
@@ -2014,7 +2010,6 @@ html[data-theme="pixel"] .tab-btn { font-size: 21px; letter-spacing: 0.04em; bor
 html[data-theme="pixel"] :is(.tab-hero-actions button, .detail-actions button, .stack-form button, .login-card button, .pill, .genre-chip, .format-chip) { font-size: 20px; letter-spacing: 0.06em; }
 html[data-theme="pixel"] :is(.tab-hero-meta, .card .card-meta) { font-family: 'VT323', monospace; font-size: 18px; }
 html[data-theme="pixel"] .card .card-meta { font-size: 15px; }
-html[data-theme="pixel"] .brand h1 { font-family: 'Press Start 2P', monospace; font-size: 13px; }
 html[data-theme="pixel"] :is(.login-card input:not([type="checkbox"]), .stack-form input:not([type="checkbox"]), .stack-form select, .search-input) { box-shadow: var(--pixel-frame); font-family: 'VT323', monospace; font-size: 20px; }
 html[data-theme="pixel"] .player-scrub-fill { background: #38b764; border-radius: 0; }
 html[data-theme="pixel"] .tab-hero-badge { color: #38b764; font-family: 'Press Start 2P', monospace; font-size: 10px; letter-spacing: 0.1em; }
