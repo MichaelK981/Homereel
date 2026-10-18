@@ -966,3 +966,9 @@ before 1.90 predate the repository, so they exist as images only.
   `RADARR_ANIME_PATH_MAP` rewrites its path prefix into HomeReel's
   (e.g. `/movies:/animemovies`) before matching. Nothing changes when the new
   variables are unset.
+- **1.91 (2026-10-18)** — Phone layout fix. On a narrow phone the three
+  buttons under the featured title (Play, Details, + My List) sat in a row
+  that could not wrap, so "+ My List" ran off the right edge and "Play" broke
+  onto two lines. Below 760px wide, Play now takes the full width and the
+  other two share the row beneath (themes with wider labels stack all three).
+  Also fixed the Pixel Art theme's titles staying oversized on phones.

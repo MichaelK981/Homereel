@@ -2530,8 +2530,8 @@ html[data-fx="off"] .theme-fx { display: none; }
 @media (max-width: 760px) {
   html[data-theme]:not([data-theme="default"]) .tab-hero-title { font-size: 44px; line-height: 0.95; }
   html[data-theme]:not([data-theme="default"]) :is(.page-title, .detail-page-title) { font-size: 38px; }
-  html[data-theme="pixel"] .tab-hero-title { font-size: 24px; line-height: 1.35; }
-  html[data-theme="pixel"] :is(.page-title, .detail-page-title) { font-size: 20px; line-height: 1.4; }
+  html[data-theme="pixel"]:not([data-theme="default"]) .tab-hero-title { font-size: 24px; line-height: 1.35; }
+  html[data-theme="pixel"]:not([data-theme="default"]) :is(.page-title, .detail-page-title) { font-size: 20px; line-height: 1.4; }
   html[data-theme]:not([data-theme="default"]) :is(#scanBtn, #checkBtn, #logoutBtn) {
     padding: 6px 8px;
     font-size: 11px;

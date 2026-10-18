@@ -1815,6 +1815,19 @@ main { width: 100%; max-width: 1520px; margin: 0 auto; padding: 24px 44px; }
   /* No room next to the text at this width without the two overlapping. */
   .tab-hero-poster { display: none; }
   .tab-hero-title { font-size: 44px; }
+  /* Three buttons with desktop padding are wider than a phone, and the row
+     could not wrap, so "+ My List" ran off the right edge and "Play" broke
+     onto two lines. Play gets the full width; the other two share a row. */
+  .tab-hero-actions { flex-wrap: wrap; gap: 10px; }
+  .tab-hero-actions button,
+  .tab-hero-actions button.secondary {
+    flex: 1 1 0;
+    padding: 13px 14px;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+  .tab-hero-actions button:not(.secondary) { flex-basis: 100%; }
 }
 
 
