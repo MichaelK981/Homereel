@@ -6,6 +6,25 @@ support. It remembers where every account got to in every title, so playback
 picks up where it left off. No external metadata service and no telemetry —
 just your files, indexed, access-controlled per user, and playable.
 
+## Screenshots
+
+![Home: a featured title above shelves of recently added movies](docs/screenshots/home.jpg)
+
+| Browse | Title page |
+|---|---|
+| ![Browse: every title in a poster grid with genre filters](docs/screenshots/browse.jpg) | ![Title page: poster, synopsis, details and the formats available](docs/screenshots/title.jpg) |
+
+**Themes** — 21 looks, picked per profile in Settings → Theme (see [Themes](#themes)):
+
+![Six of the themes side by side: Neon Glow, Paper Cutout, Split-Flap, Comic Book, Art Deco and Pixel Art](docs/screenshots/themes.jpg)
+
+<details>
+<summary>The theme picker</summary>
+
+![Settings → Theme: a gallery of all 21 themes, each tile a live preview](docs/screenshots/theme-picker.jpg)
+
+</details>
+
 ## Quick start
 
 1. Point the volumes in `docker-compose.yml` at your Movies, Series and Anime
