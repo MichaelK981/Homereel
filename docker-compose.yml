@@ -4,7 +4,7 @@
 # runs fine and simply has no poster artwork, ratings or collections.
 services:
   homereel:
-    image: michaelk98/homereel:latest
+    image: ghcr.io/michaelk981/homereel:latest
     container_name: homereel
     ports:
       # 8000 is the container port; publish anywhere free on the host.

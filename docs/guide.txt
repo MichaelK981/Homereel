@@ -84,7 +84,7 @@ banner then has to match by path rather than by numbering).
 -------------------
 Either pull the published image:
 
-    docker pull michaelk98/homereel:latest
+    docker pull ghcr.io/michaelk981/homereel:latest
 
 or build from source:
 
@@ -93,7 +93,7 @@ or build from source:
 
 The published image carries a sanitised copy of the compose file. To extract it:
 
-    docker create --name tmp michaelk98/homereel:latest
+    docker create --name tmp ghcr.io/michaelk981/homereel:latest
     docker cp tmp:/srv/docker-compose.yml .
     docker rm tmp
 

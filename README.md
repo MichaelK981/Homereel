@@ -814,12 +814,13 @@ API underneath doesn't change.
 
 ## Version history
 
-The source lives on GitHub (`MichaelK981/Homereel`): every release is a
-commit on `main` tagged `vX.YY`. Built images are published to Docker Hub
-(`michaelk98/homereel`) under the same version, with `latest` pointing at
-the newest, and the live stack pulls from there rather than a local build.
-Versions before 1.90 predate the repository and exist only as Docker Hub
-tags; the ones listed below are summarised here.
+Everything lives on GitHub (`MichaelK981/Homereel`): every release is a
+commit on `main` tagged `vX.YY`, and its image is published to the GitHub
+Container Registry as `ghcr.io/michaelk981/homereel:X.YY`, with `latest`
+pointing at the newest. The live stack pulls from there rather than a local
+build. Every earlier image tag (1.21 onward) was copied over from Docker Hub
+(`michaelk98/homereel`), which is no longer updated after 1.90. Versions
+before 1.90 predate the repository, so they exist as images only.
 
 - **1.77 (2026-08-28)** — Fixed a deploy regression: the previous build had
   been made from a stray, stale copy of the source tree and silently reverted
